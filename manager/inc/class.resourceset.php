@@ -56,6 +56,7 @@ class ResourceSet extends recordset
         if (!$this->isEmpty()) {
             $this->loadCurrent();
         }
+
     }
 
     /**
@@ -99,7 +100,10 @@ class ResourceSet extends recordset
      */
     function f($field)
     {
-        return $this->cur->f($field);
+    	if (isset($this->cur))
+        	return $this->cur->f($field);
+    	else
+    		return '';
     }
 
     /**
@@ -111,15 +115,17 @@ class ResourceSet extends recordset
      */
     function extf($ext, $field)
     {
-        if (!empty($this->cur->$ext)) {
+        if (isset($this->cur->$ext) && !empty($this->cur->$ext)) {
             return $this->cur->$ext->f($field);
         } else {
             //try to access not available extended data 
             //this is a problem, trigger a warning as most likely the code
             //has a problem
+            /*
             trigger_error('Extended data "'.$ext
                           .'" not available for the current resource', 
                           E_USER_WARNING);
+                          */
             return '';
         }
     }
@@ -132,7 +138,10 @@ class ResourceSet extends recordset
      */
     function getPath($type='')
     {
-        return $this->cur->getPath($type);
+    	if (isset($this->cur))
+        	return $this->cur->getPath($type);
+    	else
+    		return '';
     }
 
     /**
@@ -153,7 +162,7 @@ class ResourceSet extends recordset
         if (!class_exists($type)) {
             // we suppose here that the class file has been loaded before
             $type = 'Resource';
-        }
+        }     
         $this->cur = new $type($data);
         if (false !== ($res = MemStorage::get($this->cur->f('resource_id')))) {
             $this->cur = $res;
@@ -260,7 +269,7 @@ class MemStorage
      * @param int Resource id
      * @return mixed Resource object or false
      */
-    function get($res_id)
+    public static function get($res_id)
     {
         if (isset($GLOBALS['_PX_mem_storage'][$res_id])) {
             return $GLOBALS['_PX_mem_storage'][$res_id];
@@ -275,7 +284,7 @@ class MemStorage
      * @param Object Resource object
      * @return true
      */
-    function save($res)
+    public static function save($res)
     {
         if (!isset($GLOBALS['_PX_mem_storage'])
             or count($GLOBALS['_PX_mem_storage']) > 20) {

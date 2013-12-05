@@ -29,8 +29,9 @@ class Vegetarian
     /**
      * $p['ct'] contains the comment. 
      */
-    function onNewPublicComment($name, $p)
+    public static function onNewPublicComment($name, $p)
     {
+    	$p=$p[0];
         if (substr_count(strtolower($p['ct']->f('comment_content')), 'http://') > 3) {
             $p['ct']->setField('comment_status', PX_RESOURCE_STATUS_JUNK);
             return;
@@ -73,8 +74,9 @@ class Vegetarian
      * Here we can directly delete comments which are definitely
      * spams.
      */
-    function onNewPublicCommentAfter($name, $p)
+    public static function onNewPublicCommentAfter($name, $p)
     {
+    	$p = $p[0];
         $total = substr_count(strtolower($p['ct']->f('comment_content')), 'http://');
         $total += substr_count(strtolower($p['ct']->f('comment_content')), '[/url]');
         $total += substr_count(strtolower($p['ct']->f('comment_content')), 'a href');
@@ -91,7 +93,7 @@ class Vegetarian
      * @param Object comment.
      * @param return Bool Ok or not ok
      */
-    function checkFormOk($ct)
+    public static function checkFormOk($ct)
     {
         $twister = form::getPostField('twister');
         if (strlen($twister) == 0) {
@@ -123,7 +125,7 @@ class Vegetarian
      * Author: John Sinteur, with a big thank you to io_error!
      * Author URI: http://weblog.sinteur.com/
      */
-    function checkClientIP($spammer_ip)
+   public static  function checkClientIP($spammer_ip)
     {
         $rev = array_reverse(explode('.', $spammer_ip));
         $lookup = implode('.', $rev).'.'.'l1.spews.dnsbl.sorbs.net.';

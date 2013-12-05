@@ -72,7 +72,7 @@ if (!empty($_POST['s_save'])) {
 	$px_id = '';
 	$px_log_new_site = '';
 	$px_sitelang = $_SESSION['manager_lang'];
-	if (false !== $m->saveSite($px_id, $px_name, $px_description, $px_sitelang, $px_website_address, $px_website_path, $px_xmedia_name, 1, 1, $px_log_new_site, 'default')) {
+	if (false !== $m->saveSite($px_id, $px_name, $px_description, $px_sitelang, $px_website_address, $px_website_path, $px_xmedia_name, 1, 1, 1, $px_log_new_site, 'default')) {
 		$msg =  sprintf(__('Site <strong>%s</strong> successfully added.'), $px_name);
 		$_SESSION['log_new_site'] = $px_log_new_site; //Save the log in the session, the header is to prevent a double "addition".
 		$_SESSION['step7'] = true;

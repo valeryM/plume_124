@@ -36,7 +36,15 @@ $_PX_website_config['lang'] = 'en_US';
 $_PX_website_config['theme_id'] = 'default';
 
 /* Default status of a comment, 1: online 5:waiting for validation. */
-$_PX_website_config['comment_default_status'] = 1;
+$_PX_website_config['comment_default_status'] = 5;
+
+$_PX_website_config['comment_default_value'] = 3;
 
 /* Support of the comments: 1 - open, 2 - select per individual resource, 3 - closed. */
 $_PX_website_config['comment_support'] = 2;
+/* Alertcom (comments notification) configuration - 0: disabled ; 1: only published comments notified ; 2: all comments notified */
+$_PX_config['comment_notification_status'] = 1;
+
+/* Email to send the notification to (could be multiple coma seperated) */
+$_PX_config['email_for_sending_notification'] = '';
+$_PX_config['order_cat_manual']=true;

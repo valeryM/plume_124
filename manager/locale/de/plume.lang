@@ -25,6 +25,9 @@ Neuigkeiten
 ;Articles
 Artikel
 
+;Rss
+Rss links
+
 ;Files or images
 Dateien oder Bilder
 
@@ -949,8 +952,8 @@ Aktueller Ordner
 ;Go one folder up.
 Gehe einen Ordner nach oben
 
-;You need now to add the first page of the article. After adding the first page, you can <a href="%s">validate and put online the article</a>.
-Sie müssen jetzt die erste Seite zum Artikel hinzufügen. Danach können Sie die Seite <a href="%s">überprüfen und online stellen</a>.
+;You need now to add the first page of the article. After adding the first page, you can validate and put online the article.
+Sie müssen jetzt die erste Seite zum Artikel hinzufügen. Danach können Sie die Seite überprüfen und online stellen.
 
 ;The comment was successfully deleted.
 Der Kommentar wurde erfolgreich gelöscht.

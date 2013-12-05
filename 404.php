@@ -19,7 +19,6 @@
 #
 # ***** END LICENSE BLOCK *****
 
-
 include './config.php';
 include './prepend.php';
 

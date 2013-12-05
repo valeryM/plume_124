@@ -22,7 +22,7 @@
 # the Initial Developer. All Rights Reserved.
 #
 # Contributor(s):
-#    Loïc d'Anterroches
+#    Loï¿½c d'Anterroches
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -42,9 +42,9 @@ require_once dirname(__FILE__).'/../inc/class.l10n.php';
 
 class recordset extends CError
 {
-    var $arry_data=array(); // tableau contenant les données
+    var $arry_data=array(); // tableau contenant les donnï¿½es
     var $int_index; //index pour parcourir les enregistrements
-    // les enregistrements commencent à l'index 0
+    // les enregistrements commencent ï¿½ l'index 0
         
     var $int_row_count=0; // nombre d'enregistrements
     var $int_col_count=0; // nombre de colonnes
@@ -74,7 +74,8 @@ class recordset extends CError
                 $T = array_values($this->arry_data[$this->int_index]);
                 return (isset($T[($c)])) ? $T[($c)] : false;
             } else {
-                $c = strtolower($c);
+            	if (!isset($this->arry_data[$this->int_index][$c])) $c = strtolower($c);
+                
                 if (isset($this->arry_data[$this->int_index][$c])) {
                     if (!is_array($this->arry_data[$this->int_index][$c])) {
                         return trim($this->arry_data[$this->int_index][$c]);
@@ -173,7 +174,7 @@ class recordset extends CError
         return ($this->int_row_count == 0);
     }
         
-    // Donner le tableau de données
+    // Donner le tableau de donnï¿½es
     function getData()
     {
         return $this->arry_data;
@@ -202,7 +203,15 @@ class recordset extends CError
         return $this->int_row_count_total;
     }    
     
-
+    // Nombre de colonnes a l'initialisation
+    function nbCol()
+    {
+        return count($this->arry_data[$this->int_index]);
+    }  
+    
+    function getField($f) {
+    	return $this->arry_data[$this->int_index][$f];
+    }
     /**
      * Get ids of resources with a prefix or not.
      *

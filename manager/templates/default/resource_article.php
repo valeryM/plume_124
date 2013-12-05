@@ -1,4 +1,6 @@
 <?php 
+// ajout commentaire
+
 if ($cache->processPage(180)):
     pxTemplateInit('remove_numbers'); 
 ?>
@@ -16,7 +18,6 @@ if ($cache->processPage(180)):
 <meta name="DC.Author" content="<?php pxResAuthor(); ?>" />
 <meta name="DC.Title" content="<?php pxSingleCatTitle('%s'); ?> - <?php pxArtTitle('%s'); ?>" />
 </head>
-
 <body class="category">
 
 <div id="page">
@@ -85,8 +86,6 @@ if ($cache->processPage(180)):
 	</div><!-- end menuleft -->
 
 </div><!-- end mainfloat -->
-
-
 
 	<div id="menuright">
 		<div class="col-content">

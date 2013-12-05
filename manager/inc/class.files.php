@@ -112,7 +112,7 @@ class files
      * @param bool (true) do the recursive listing.
      * @return int Error/success code
      */
-    function listfiles($folder, &$files, $regex='', $rec=true)
+    public static function listfiles($folder, &$files, $regex='', $rec=true)
     {
         if (!@file_exists($folder) or !@is_dir($folder)) 
             return PX_FILES_ERROR_NO_SOURCE;
@@ -143,7 +143,7 @@ class files
      * @param int Overwrite the file (PX_FILES_OVERWRITE_FALSE)
      * @return int Success/error code
      */
-    function copyfile($src, $dest, $chmod=0666, 
+    public static function copyfile($src, $dest, $chmod=0666, 
                       $overwrite=PX_FILES_OVERWRITE_FALSE)
     {
         $src_exists = @file_exists($src);
@@ -175,7 +175,7 @@ class files
      * @param int (octal) Chmod for the newly created folders (0777)
      * @return int Success/error code
      */
-    function createfolder($folder, $chmod=0777)
+    public static function createfolder($folder, $chmod=0777)
     {
         $folder = files::real_path($folder);
         //windows cleaning
@@ -186,7 +186,7 @@ class files
         // First pop from the top to the bottom "/" to see when a directory
         // exist. Then start to create them from this point.
         // This is to avoid problems in safe_mod.
-        $dirs = split('/', $folder);
+        $dirs = explode('/', $folder);
         if (@is_dir($folder)) {
             return PX_FILES_SUCCESS;
         }
@@ -220,13 +220,13 @@ class files
      * @param int error/success code
      * @return BOOL error or success
      */
-    function is_success($code)
+    public static function is_success($code)
     {
         return ($code > 0);
     }
 
 
-    function is_pathrelative($dir)
+    public static function is_pathrelative($dir)
     {
         if (strcmp('Win', PX_CUR_OS) == 0) {
             return (preg_match('/^\w+:/', $dir) <= 0);
@@ -235,7 +235,7 @@ class files
         }
     }
 
-    function unifypath($path)
+    public static function unifypath($path)
     {
         if (strcmp('Win', PX_CUR_OS) == 0) {
             return str_replace('\\', PX_OS_SEP, $path);
@@ -243,18 +243,29 @@ class files
         return $path;
     }
 
-    function real_path($path)
+    public static function real_path($path)
     {
         $_path = files::unifypath($path);
         if (files::is_pathrelative($path)) {
             $_curdir = files::unifypath(realpath('.').PX_OS_SEP);
-            $_path = $_curdir.$_path;
+            $_arrayDir = explode('/',$_curdir);
+            if (preg_match('/[A-Z]{1}\:/', $_arrayDir[0])) {
+            	// win dir : disk letter
+				// remove  it
+            	array_shift($_arrayDir);
+            	$_curdir = '/'. implode('/',$_arrayDir);
+            } else {
+            	$_path = $_curdir.$_path;
+            }
+            
         }
         $_startPoint = '';
+        /*
         if (strcmp('Win', PX_CUR_OS) == 0) {
             list($_startPoint, $_path) = explode(':', $_path, 2);
             $_startPoint .= ':';
         }
+        */
         // From now processing is the same for WIndows and Unix, 
         // and hopefully for others.
         $_realparts = array();

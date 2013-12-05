@@ -153,13 +153,17 @@ class Resource extends RecordSet
         $this->getConnection();
         $r = 'SELECT * FROM '.$this->con->pfx.'categoryasso
             LEFT JOIN '.$this->con->pfx.'categories ON '
-            .$this->con->pfx.'categoryasso.category_id='
-            .$this->con->pfx.'categories.category_id
-            LEFT JOIN '.$this->con->pfx.'websites ON '
-            .$this->con->pfx.'websites.website_id='
-            .$this->con->pfx.'categories.website_id
+				.$this->con->pfx.'categoryasso.category_id='.$this->con->pfx.'categories.category_id 
+			LEFT JOIN '.$this->con->pfx.'websites ON '
+				.$this->con->pfx.'websites.website_id='.$this->con->pfx.'categories.website_id
             WHERE identifier=\''.$this->f('identifier').'\' 
             ORDER BY categoryasso_type ASC';
+			/*
+			LEFT JOIN '.$this->con->pfx.'usercats ON '
+				.$this->con->pfx.'categories.user_id='. $user->f('user_id') . '
+				AND '.$this->con->pfx.'websites.website_id='.$this->con->pfx.'usercats.website_id 
+				AND '.$this->con->pfx.'categories.categories_id='.$this->con->pfx.'usercats.category_id 			
+			*/
         if (($rs = $this->con->select($r, 'Category')) !== false) {
             $this->cats = $rs;
             return true;
@@ -168,6 +172,8 @@ class Resource extends RecordSet
             return false;
         }
     }
+    
+
 
     /**
      * Get the path to the resource.
@@ -200,6 +206,7 @@ class Resource extends RecordSet
         return $base.$this->f('category_path').$this->f('path');
     }
     
+	
     /**
      * Get the authors of the resource. 
      * The authors are in the `users` table. The association author -> resource
@@ -341,7 +348,7 @@ class Resource extends RecordSet
      * @return array ids
      * @param  string prefix for ids ('')
      */
-    function getIDs($str='')
+    function getIDs($key,$str='')
     {
         $res = array();
         foreach ($this->arry_data as $k => $v) {
@@ -403,11 +410,11 @@ class Resource extends RecordSet
      * If content is wiki, transform it as HTML, etc.
      *
      * @param string Field to get
-     * @param string Output format ('html')
+     * @param string Output format ('Html')
      * @param string Member variable name ('')
      * @return string Formatted content
      */
-    function getFormattedContent($field, $format='html', $var='')
+    function getFormattedContent($field, $format='Html', $var='')
     {
         if ($var == '') {
             return text::parseContent($this->f($field), $format);
@@ -444,9 +451,9 @@ class Resource extends RecordSet
     function getArrayDate($field, $var='')
     {
         if ($var == '') {
-            return date::explode($this->f($field));
+            return date::explode($this->f($field),false);
         } else {
-            return date::explode($this->$var->f($field));
+            return date::explode($this->$var->f($field),false);
         }
     }
 
@@ -457,7 +464,7 @@ class Resource extends RecordSet
      * @param string Member variable name ('')
      * @return bool Date at end of time
      */
-    function isDateEOT($field, $var='')
+    function isDateEOT($field, $var = '')
     {
         if ($var == '') {
             return date::isEOT($this->f($field));
@@ -482,12 +489,14 @@ class Resource extends RecordSet
      *
      * @return bool Success
      */
-    function set()
+    function set($title, $subject, $content, $format, $status, $path, $datestart,
+                 $dateend, $useenddate, $comment_support, $subtype)
     {
         trigger_error('set() not defined for the current resource object.', 
                       E_USER_WARNING); 
         return false;
     }
+    
 
     /**
      * Check the basic data.
@@ -534,7 +543,7 @@ class Resource extends RecordSet
     function addToCategory($catid, $type=PX_RESOURCE_CATEGORY_MAIN)
     {
         if (!preg_match('/^\d+$/', $catid)) {
-            $this->setError(__('The proposed category is invalid.'), 400); 
+            $this->setError(__('The proposed category is invalid.').' : '.$catid , 400); 
             return false;
         }            
         
@@ -715,6 +724,33 @@ class Resource extends RecordSet
         return true;
     }
     
+    function getNumberOfPages( $cat_id)  {
+    	$this->getConnection();
+    	$res_id = $this->con->escapeStr($this->f('resource_id'));
+    	$r = 'SELECT COUNT('.$this->con->pfx.'articles.page_id) AS nbPage 
+    		FROM '.$this->con->pfx.'resources INNER JOIN '.$this->con->pfx.'categoryasso
+    				ON '.$this->con->pfx.'resources.identifier='.$this->con->pfx.'categoryasso.identifier 
+    				INNER JOIN '.$this->con->pfx.'articles ON '.$this->con->pfx.'resources.resource_id='.$this->con->pfx.'articles.resource_id  
+    		WHERE '.$this->con->pfx.'resources.resource_id=\''.$res_id.'\' 
+    			AND  '.$this->con->pfx.'categoryasso.category_id=\''.$this->con->escapeStr($cat_id).'\' '; 
+/*
+        $r = 'SELECT * FROM '.$this->con->pfx.'categoryasso
+            LEFT JOIN '.$this->con->pfx.'categories ON '
+				.$this->con->pfx.'categoryasso.category_id='.$this->con->pfx.'categories.category_id 
+			LEFT JOIN '.$this->con->pfx.'websites ON '
+				.$this->con->pfx.'websites.website_id='.$this->con->pfx.'categories.website_id
+            WHERE identifier=\''.$this->f('identifier').'\' 
+            ORDER BY categoryasso_type ASC';
+    	*/
 
+        if (($rs = $this->con->select($r, 'infoRes')) !== false) {
+            return $rs->f('nbPage');
+        } else {
+            $this->setError('MySQL: '.$this->con->error(), 500);
+            return false;
+        }    	
+        
+    }
+    
 }
 ?>

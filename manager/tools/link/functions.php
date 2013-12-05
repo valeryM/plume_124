@@ -38,7 +38,7 @@ class pxLink {
      * @param string  Substitution string for the list ('<ul>%s</ul>')
      * @param string  Substitution string for each link ('<li>%s</li>')
      */
-    function _linkList($sql, $category='<h3>%s</h3>', $block='<ul>%s</ul>',
+    public static function _linkList($sql, $category='<h3>%s</h3>', $block='<ul>%s</ul>',
                        $item='<li>%s</li>')
     {
         $con =& pxDBConnect();
@@ -50,6 +50,10 @@ class pxLink {
                 $title = $rs_link->f('title');
                 $lang = $rs_link->f('lang');
                 $rel = $rs_link->f('rel');
+                $style = $rs_link->f('style');
+                $target = $rs_link->f('cible');
+                $zone = $rs_link->f('zone');
+           
                 
                 if (! $label && ! $href) {
                     if ('' != $res) {
@@ -59,15 +63,21 @@ class pxLink {
                     $res = ''; 
                 } else {
                     $link =
-                        '<a href="'.htmlspecialchars($href).'"'.
+                        '<a class="'.$zone.'" href="'.htmlspecialchars($href).'"'.
                         ((!$lang) ? '' : ' hreflang="'.htmlspecialchars($lang).'"').
                         ((!$title) ? '' : ' title="'.htmlspecialchars($title).'"').
                         ((!$rel) ? '' : ' rel="'.htmlspecialchars($rel).'"').
+                        ((!$target) ? '' : ' target="'.htmlspecialchars($target).'"').
                         '>'.
                         htmlspecialchars($label).
                         '</a>';
                     
-                    $res .= sprintf($item,$link);
+                    // Search if $item contains 2 %s
+                    if (substr_count($item, '%s')==1) {
+                   		$res .= sprintf($item,$link);
+                    } else {
+                    	$res .= sprintf($item,$style,$link);
+                    }
                 }
                 $rs_link->moveNext();
             }
@@ -78,37 +88,64 @@ class pxLink {
     } 
 
     /**
-     * Cette fonction affiche la liste de tous les liens
+     * Cette fonction affiche la liste de tous les liens regroup√©s par zone et tri√©s selon l'ordre d√©fini
      * 
      * @proto function linkList
-     * @param string  category Chaine de substitution pour une catÈgorie ('<h3>%s</h3>')
+     * @param string  category Chaine de substitution pour une cat√©gorie ('<h3>%s</h3>')
      * @param string  block Chaine de substitution pour la liste ('<ul>%s</ul>')
-     * @param string  item  Chaine de substitution pour un ÈlÈment ('<li>%s</li>')
+     * @param string  item  Chaine de substitution pour un √©l√©ment ('<li>%s</li>')
      */
-    function linkList($category='<h3>%s</h3>',$block='<ul>%s</ul>',$item='<li>%s</li>')
+    public static function linkList($category='<h3>%s</h3>',$block='<ul>%s</ul>',$item='<li>%s</li>')
     {   
-        $sql = 'SELECT label, href, title, lang, rel FROM '.$GLOBALS['_PX_config']['db']['table_prefix'].'links ';
-        $sql.= 'WHERE website_id=\''.$GLOBALS['_PX_website_config']['website_id'].'\' ';
-        $sql.= 'ORDER BY position';
-        
+        $sql = 'SELECT links.label, links.href, links.title, links.lang, links.rel, links.style, links.zone, links.cible ';
+        $sql .= 'FROM '.$GLOBALS['_PX_config']['db']['table_prefix'].'links zones ';
+        $sql .= 'INNER JOIN '.$GLOBALS['_PX_config']['db']['table_prefix'].'links links ON (zones.zone=links.zone)';
+        $sql .= 'WHERE zones.href=\'\' AND zones.cible=\'\' ';
+        $sql .= 'AND  zones.website_id=\''.$GLOBALS['_PX_website_config']['website_id'].'\' ';
+        $sql .= ' AND links.website_id=\''.$GLOBALS['_PX_website_config']['website_id'].'\' ';
+        $sql .= 'ORDER BY zones.position ASC, links.position ASC';
+
         pxLink::_linkList($sql, $category, $block, $item);
     }
     
     /**
-     * Cette fonction affiche la liste des liens d'une catÈgorie donnÈe
+     * Cette fonction affiche la liste de tous les liens pour une zone donn√©e
+     *
+     * @proto function linkListByArea
+     * @param string  area_name Nom de la zone
+     * @param string  category Chaine de substitution pour une cat√©gorie ('<h3>%s</h3>')
+     * @param string  block Chaine de substitution pour la liste ('<ul>%s</ul>')
+     * @param string  item  Chaine de substitution pour un √©l√©ment ('<li>%s</li>')
+     */
+    public static function linkListByArea($area_name ,$category='<h3>%s</h3>',$block='<ul>%s</ul>',$item='<li>%s</li>')
+    {
+    	$sql = 'SELECT links.label, links.href, links.title, links.lang, links.rel, links.style, links.zone, links.cible ';
+    	$sql .= 'FROM '.$GLOBALS['_PX_config']['db']['table_prefix'].'links zones ';
+    	$sql .= 'INNER JOIN '.$GLOBALS['_PX_config']['db']['table_prefix'].'links links ON (zones.zone=links.zone AND zones.website_id=links.website_id) ';
+    	$sql .= 'WHERE zones.zone =\''.$area_name.'\' AND zones.href=\'\' AND zones.cible=\'\' ';
+    	$sql .= 'AND links.link_id != zones.link_id ';
+    	$sql .= 'AND  zones.website_id=\''.$GLOBALS['_PX_website_config']['website_id'].'\' ';
+    	//$sql .= ' AND links.website_id=\''.$GLOBALS['_PX_website_config']['website_id'].'\' ';
+    	$sql .= 'ORDER BY zones.position ASC, links.position ASC';
+    //echo $sql;
+    	pxLink::_linkList($sql, $category, $block, $item);
+    }
+    
+    /**
+     * Cette fonction affiche la liste des liens d'une cat√©gorie donn√©e
      * 
      * @proto function linkListByCategory
-     * @param string  category_name Nom de la catÈgorie
-     * @param string  category Chaine de substitution pour une catÈgorie ('<h3>%s</h3>')
+     * @param string  category_name Nom de la cat√©gorie
+     * @param string  category Chaine de substitution pour une cat√©gorie ('<h3>%s</h3>')
      * @param string  block Chaine de substitution pour la liste ('<ul>%s</ul>')
-     * @param string  item  Chaine de substitution pour un ÈlÈment ('<li>%s</li>')
+     * @param string  item  Chaine de substitution pour un √©l√©ment ('<li>%s</li>')
      */
-    function linkListByCategory($category_name, $category='<h3>%s</h3>',$block='<ul>%s</ul>',$item='<li>%s</li>')
+    public static function linkListByCategory($category_name, $category='<h3>%s</h3>',$block='<ul>%s</ul>',$item='<li>%s</li>')
     {
         global $con;
         if (!isset($con)) $con =& pxDBConnect();
         
-        //-- RecupÈration de la position de la catÈgorie
+        //-- Recup√©ration de la position de la cat√©gorie
         $sql = 'SELECT position FROM '.$GLOBALS['_PX_config']['db']['table_prefix'].'links ';
         $sql.= 'WHERE website_id=\''.$GLOBALS['_PX_website_config']['website_id'].'\' ';
         $sql.= 'AND title = \''.$category_name.'\'';
@@ -119,7 +156,7 @@ class pxLink {
         
         $category_position = $rs_category->f('position');
         
-        //-- RÈcupÈration de la position de la catÈgorie suivante
+        //-- R√©cup√©ration de la position de la cat√©gorie suivante
         $sql = 'SELECT position FROM '.$GLOBALS['_PX_config']['db']['table_prefix'].'links ';
         $sql.= 'WHERE website_id=\''.$GLOBALS['_PX_website_config']['website_id'].'\' ';
         $sql.= 'AND position > '.$category_position.' ';
@@ -133,7 +170,7 @@ class pxLink {
         $next_category_position = $rs_next_category->f('position');
         
         //-- Affichage des liens
-        $sql = 'SELECT label, href, title, lang, rel FROM '.$GLOBALS['_PX_config']['db']['table_prefix'].'links ';
+        $sql = 'SELECT label, href, title, lang, rel, style, links.zone, links.cible FROM '.$GLOBALS['_PX_config']['db']['table_prefix'].'links ';
         $sql.= 'WHERE website_id=\''.$GLOBALS['_PX_website_config']['website_id'].'\' ';
         $sql.= 'AND position >= '.$category_position.' ';
         if (!empty($next_category_position)) {

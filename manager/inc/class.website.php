@@ -75,11 +75,10 @@ class Website extends recordset
      * @return bool True
      */
     function set($name, $description, $format, $lang, $address,
-                 $path, $xmedia, $xmedia_path)
+                 $path, $xmedia, $xmedia_path, $img_path)
     {
         $this->setField('website_name', trim($name));
-        $this->setField('website_description', 
-                        '='.$format."\n".trim($description));
+        $this->setField('website_description', '='.$format."\n".trim($description));
         $this->setField('website_lang', $lang);
 
         $address = preg_replace('#(/)+$#', '', trim($address));
@@ -94,6 +93,8 @@ class Website extends recordset
         $xmedia_path = preg_replace('#(/)+$#', '', trim($xmedia_path));
         $this->setField('website_xmedia_path', files::real_path($xmedia_path));
         
+      	$this->setField('website_img',trim($img_path));
+      	
         return true;
     }
 
@@ -316,7 +317,7 @@ class Website extends recordset
                 return false;
             }
 
-
+        }
 
     }
 
@@ -342,7 +343,7 @@ class Website extends recordset
         }
 
     }
-}
+
 
 //if (false) {
 

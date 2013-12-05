@@ -25,6 +25,9 @@ Noticias
 ;Articles
 Art&iacute;culos
 
+;Rss
+Rss links
+
 ;Files or images
 Ficheros o im&aacute;genes
 
@@ -949,7 +952,7 @@ Directorio padre
 ;Go one folder up.
 Subir un directorio
 
-;You need now to add the first page of the article. After adding the first page, you can <a href="%s">validate and put online the article</a>.
+;You need now to add the first page of the article. After adding the first page, you can validate and put online the article.
 
 
 ;The comment was successfully deleted.

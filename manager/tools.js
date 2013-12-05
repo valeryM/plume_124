@@ -27,17 +27,18 @@ function catChangePath(idArray)
 
 function setUrl(titleField, urlField, param, param2)
 {
-    url   = document.getElementById(urlField);
-    title = document.getElementById(titleField);
+    url   = $("#"+urlField);
+    title = $("#"+titleField);
     if (param == 'cat') {
-        if (document.getElementById('quirk_category_path').value == 0) {
-            urlFromTitle = titleToUrl(title.value,'cat');
-            url.value = param2[document.formPost.c_parentid.value] + urlFromTitle + '/';
-        }
+        //if (document.getElementById('quirk_category_path').value == 0) {
+            urlFromTitle = titleToUrl(title.val(),'cat') +'/';
+            if (urlFromTitle =='/') urlFromTitle ='';
+            url.val(param2[document.formPost.cat_id.value] + urlFromTitle);
+        //}
     } else {
-        if (param2 == 0) {
-            url.value = titleToUrl(title.value,'art');
-        }
+        //if (param2 == 0) {
+            url.val(titleToUrl(title.val(),'art'));
+        //}
     }
 }
 
@@ -72,54 +73,89 @@ function replaceFunc(str, p1, offset, s)
 
 function openClose(id,mode)
 {
-	if(document.getElementById) {
-		element = document.getElementById(id);
-		img = document.getElementById('img_' + id);
-	} else if(document.all) {
-		element = document.all[id];
-		img = document.all['img_' + id];
-	} else return;
+	/*
+	element = $('#'+id);
+	img = $("#img_"+id);
 
-	if(element.style) {
-		if(mode == 0) {
-			if(element.style.display == 'block' ) {
-				element.style.display = 'none';
-				img.src = 'themes/'+pxThemeid+'/images/plus.png';
-			} else {
-				element.style.display = 'block';
-				img.src = 'themes/'+pxThemeid+'/images/minus.png';
-			}
-		} else if(mode == 1) {
-			element.style.display = 'block';
-			img.src = 'themes/'+pxThemeid+'/images/minus.png';
-		} else if(mode == -1) {
-			element.style.display = 'none';
-			img.src = 'themes/'+pxThemeid+'/images/plus.png';
+	if(mode == 0) {
+		if(element.css('display') == 'block' ) {
+			element.css('display', 'none');
+			img.attr('src', 'themes/'+pxThemeid+'/images/plus.png');
+		} else {
+			element.css('display', 'block');
+			img.attr('src', 'themes/'+pxThemeid+'/images/minus.png');
 		}
+	} else if(mode == 1) {
+		element.css('display', 'block');
+		img.attr('src', 'themes/'+pxThemeid+'/images/minus.png');
+	} else if(mode == -1) {
+		element.css('display', 'none');
+		img.attr('src', 'themes/'+pxThemeid+'/images/plus.png');
 	}
+	*/
+
+}
+
+
+function openCloseClass(id,mode)
+{
+	element = $('.'+id);
+	img = $("#imgShow_"+id);
+
+	if(mode == 0) {
+		if (element.css('display')=='block' ) {
+			element.css('display' ,'none');
+			img.attr('src', 'themes/'+pxThemeid+'/images/arrow-d.gif');
+		} else {
+			element.css('display', 'block');
+			img.attr('src','themes/'+pxThemeid+'/images/arrow-u.gif');
+		}
+	} else if(mode == 1) {
+		element.css('display', 'block');
+		img.attr('src','themes/'+pxThemeid+'/images/arrow-u.gif');
+	} else if(mode == -1) {
+		element.css('display' ,'none');
+		img.attr('src', 'themes/'+pxThemeid+'/images/arrow-d.gif');
+	}
+
 }
 
 function openCloseSpan(id,mode)
 {
-	if(document.getElementById) {
-		element = document.getElementById(id);
-	} else if(document.all) {
-		element = document.all[id];
-	} else return;
+	element = $('#'+id);
 
-	if(element.style) {
-		if(mode == 0) {
-			if(element.style.display == 'inline' ) {
-				element.style.display = 'none';
-			} else {
-				element.style.display = 'inline';
-			}
-		} else if(mode == 1) {
-			element.style.display = 'inline';
-		} else if(mode == -1) {
-			element.style.display = 'none';
+	if(mode == 0) {
+		if(element.css('display') == 'inline' ) {
+			element.css('display', 'none');
+		} else {
+			element.css('display', 'inline');
 		}
+	} else if(mode == 1) {
+		element.css('display', 'inline');
+	} else if(mode == -1) {
+		element.css('display', 'none');
 	}
+}
+
+
+function modifDateRefererTo(Referer,dt_field) {
+	element = $("#"+Referer);
+	fieldDate = $("#"+dt_field);
+	
+	//statut = element.checked;
+	statut = ($('#'+Referer+':checked').val() == 'true');
+	
+	today = new Date();
+	if (statut == false) {
+	    mois = '0'+ (today.getMonth()+1);
+	    mois = mois.substr(mois.length-2);
+	    jour = '0'+ today.getDate();
+	    jour = jour.substr(jour.length-2);
+	    fieldDate.val(today.getFullYear().toString()+mois+jour);
+	} else  {
+		fieldDate.val('99991231');
+	}
+	fieldDate.change();
 }
 
 function openCloseBlockIf(id, idsource, cond, mode, modeelse)
@@ -138,6 +174,7 @@ function openCloseBlockIf(id, idsource, cond, mode, modeelse)
         openCloseBlock(id,modeelse);
     }
 }
+
 
 // function in_array(needle,haystack)
 // craig heydenburg 4/8/02
@@ -192,14 +229,43 @@ function openCloseBlock(id,mode)
 	}
 }
 
+function openCloseSpan(id,mode)
+{
+	if(document.getElementById) {
+		element = document.getElementById(id);
+	} else if(document.all) {
+		element = document.all[id];
+	} else return;
+
+	if(element.style) {
+		if(mode == 0) {
+			if(element.style.display == 'block' ) {
+				element.style.display = 'none';
+			} else {
+				element.style.display = 'block';
+			}
+		} else if(mode == 1) {
+			element.style.display = 'block';
+		} else if(mode == -1) {
+			element.style.display = 'none';
+		}
+	}
+}
 function mOpenClose(idArray,mode)
 {
 	for(var i=0;i<idArray.length;i++)
 	{
-		openClose(idArray[i],mode);
+		openCloseSpan(idArray[i],mode);
 	}
 }
 
+function levelOpenClose(idArray,mode)
+{
+	for(var i=0;i<idArray.length;i++)
+	{
+		openCloseClass(idArray[i],mode);
+	}
+}
 function popup(url)
 {
 	window.open(url,'dc_popup',
@@ -210,6 +276,12 @@ function insertTextIn(formObj,text)
 {
 	formObj.value += text;
 }
+
+
+function insertUrlImage(origine, url, act, text,funcNum)  {
+	window.opener.CKEDITOR.tools.callFunction( funcNum, url );
+}
+
 
 function insertImage(origine,url,act,text)
 {
@@ -286,6 +358,40 @@ function isReady(name, text) {
 return true;
 }
 
+function isDateGreater(first, second, text) {
+	if(document.getElementById) {
+		if (document.getElementById(first)) {
+			firstElt = ''+document.getElementById(first).value
+				+document.getElementById(first+'_h').value
+				+document.getElementById(first+'_i').value
+				+document.getElementById(first+'_s').value;
+	        secondElt = ''+document.getElementById(second).value
+	        	+document.getElementById(second+'_h').value
+	        	+document.getElementById(second+'_i').value
+	        	+document.getElementById(second+'_s').value;
+			if (firstElt>secondElt) {
+				alert(text);
+				return false;
+			} else return true;
+		}
+	} else if(document.all) {
+		if (document.all[first])  {
+			firstElt = ''+document.all[first].value
+				+document.all[first+'_h'].value
+				+document.all[first+'_i'].value
+				+document.all[first+'_s'].value;
+	        secondElt = ''+document.all[second].value
+	        	+document.all[second+'_h'].value;
+	        	+document.all[second+'_i'].value;
+	        	+document.all[second+'_s'].value;
+			if (firstElt>secondElt) {
+				alert(text);
+				return false;
+			} else return true;
+				
+		}
+	} else return false;
+}
 
 /* Taken from: http://simon.incutio.com/archive/2004/05/26/addLoadEvent */
 function addLoadEvent(func) {

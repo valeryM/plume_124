@@ -31,6 +31,9 @@ $_PX_config['max_upload_size'] = 100 * 1024; // maximum size of uploaded file (h
 /* Create a log of the 404 errors */
 $_PX_config['log404errors'] = false;
 
+/* mode d'affichage par défaut */
+$_PX_config['mode_affichage_contenu']='list';
+
 /* Default status of a comment, 1: online 5:waiting for validation. */
 $_PX_config['comment_default_status'] = 1;
 

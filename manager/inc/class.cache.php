@@ -39,9 +39,9 @@
  *      .... // Ce que vous voulez cacher
  *      $cc->endCache();
  *   }
- *   .... // Suite non cachée
+ *   .... // Suite non cachÃ©e
  *   if($cc->processSegment(600)) {
- *      .... // Autre partie à cacher
+ *      .... // Autre partie Ã  cacher
  *      $cc->endCache();
  *   }
  *
@@ -176,7 +176,7 @@ class Cache
     }
 
     /**
-     * Réalise le cache pour un segment donné
+     * RÃ©alise le cache pour un segment donnÃ©
      *
      * @since  2002-02-21
      * @return boolean false si le contenu  du cache est valide
@@ -218,7 +218,7 @@ class Cache
     }
 
     /**
-     * Ecrit les données dans le fichier de cache
+     * Ecrit les donnÃ©es dans le fichier de cache
      *
      * @return true si l'on a pu ecrire dans le fichier, false sinon
      * @access private
@@ -228,14 +228,14 @@ class Cache
         // mode "a" pour ne pas tronquer avant d'avoir le lock
         $fp = @fopen($this->file, 'a'); 
         if ($fp) {
-            // lock exclusif pour l'écriture
+            // lock exclusif pour l'Ã©criture
             flock($fp, LOCK_EX); 
             // maintenant qu'on a le seul pointeur on tronque
             ftruncate($fp,0); 
             // on se replace, comme si on avait ouvert en +w 
             rewind($fp); 
             fwrite($fp, $this->data, strlen($this->data));
-            // lock relaché, on peut acceder en lecture 
+            // lock relachÃ©, on peut acceder en lecture 
             flock($fp, LOCK_UN);  
             fclose($fp);
             @chmod($this->file, 0666);
@@ -245,7 +245,7 @@ class Cache
     }
 
     /**
-     * Lit les données dans le cache
+     * Lit les donnÃ©es dans le cache
      *
      * @return boolean - true si l'on a pu lire le cache, false sinon
      * @access private
@@ -259,7 +259,7 @@ class Cache
             while ($tmp=fread($fp, 4096)) {
                 $this->data .= $tmp;
             }
-            // un ralachement du lock, même si normalement ca marche sans 
+            // un ralachement du lock, mÃªme si normalement ca marche sans 
             flock($fp, LOCK_UN);
             fclose($fp);
             return true;
@@ -272,7 +272,7 @@ class Cache
     /**
      *
      */
-    function clean($website_id)
+    public static function clean($website_id, $theme)
     {
         include_once config::f('manager_path').'/tools/info/lib.dir.php';
         recursiveDelete(config::f('manager_path').'/cache/'.$website_id.'/');

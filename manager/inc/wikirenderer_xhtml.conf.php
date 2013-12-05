@@ -78,7 +78,7 @@ class WikiRenderXhtmlConfig
      */
     var $minHeaderLevel = 2;
     var $headerOrder = false;
-    var $blocAttributeTag = '°°';
+    var $blocAttributeTag = 'ï¿½ï¿½';
     var $inlineTagSeparator = '|';
     var $escapeSpecialChars = true;
     var $checkWikiWord = false; //Not used into a wiki
@@ -138,7 +138,9 @@ function xhtml_wikibuildimage($contents, $attr)
         $attribs['alt'] = $contents[1];
     case 1:
     default:
-        if (ereg('^/',$contents[0])) {
+        //if (ereg('^/',$contents[0])) {
+        if (preg_match('#^/#',$contents[0])) {
+        	
             $attribs['file'] = $contents[0];
             $contents[0] = $baseurl.$contents[0];
         }
@@ -305,9 +307,11 @@ function xhtml_buildlink($contents, $attr)
             $cnt=count($attr)+1;
         if (strpos($contents[1],'javascript:')!==false) // for security reason
             $contents[1]='#';
-        if (ereg('^/',$contents[1]))
+        //if (ereg('^/',$contents[1]))
+        if (preg_match('#^/#',$contents[1]))
             $contents[1] = $baseurl.$contents[1];
-        if (ereg('^mailto:',$contents[1])) {
+        //if (ereg('^mailto:',$contents[1])) {
+        if (preg_match('#^mailto:#',$contents[1])) {        	
             $contents[1] = 'mailto:'.text::HexEncode(substr($contents[1],7));
             $contents[0] = text::HexEncode($contents[0], true);
         }
@@ -328,7 +332,8 @@ function xhtml_buildlink($contents, $attr)
         }
         if (strpos($contents[0],'javascript:')!==false) // for security reason
             $contents[0]='#';
-        if (ereg('^/',$contents[0]))
+        //if (ereg('^/',$contents[0]))
+        if (preg_match('#^/#',$contents[0]))
             $contents[0] = $baseurl.$contents[0];
     
         $attribut=' href="'.$contents[0].'"';
@@ -389,7 +394,7 @@ class xhtml_list extends WikiRendererBloc
                 $str.=($t{$i-1}== '#'?"</li></ol>\n":"</li></ul>\n");
             }
             $str.="</li>\n<li>";
-            $this->_previousTag=substr($this->_previousTag,0,-$d); // pour être sur...
+            $this->_previousTag=substr($this->_previousTag,0,-$d); // pour ï¿½tre sur...
 
         } elseif ( $d < 0 ){ // un niveau de plus
             $c=substr($this->_detectMatch[1],-1,1);

@@ -282,19 +282,18 @@ class html2text
         // Variables used for building the link list
         $link_count = 1;
         $this->_link_list = '';
-
-        $text = trim(stripslashes($this->html));
-
+        // decode entities
+        $text = html_entity_decode($this->html,ENT_QUOTES,'UTF-8');
+        // strip slashes
+        $text = trim(stripslashes($text));
         // Run our defined search-and-replace
         $text = preg_replace($this->search, $this->replace, trim($text));
-
         // Strip any other HTML tags
         $text = strip_tags($text);
 
         // Bring down number of empty lines to 2 max
         $text = preg_replace("/\n[[:space:]]+\n/", "\n\n", $text);
         $text = preg_replace("/[\n]{3,}/", "\n\n", $text);
-
         // Add link list
         if ( !empty($this->_link_list) ) {
             $text .= "\n\n".__('Links:')."\n------\n" . $this->_link_list;

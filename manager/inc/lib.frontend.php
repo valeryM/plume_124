@@ -62,6 +62,7 @@ $art, $res, $news etc...
  * filesurl : relative url to the files and images of the website  
  * lang : the lang of the website
  * namexml : name utf-8 encoded
+ * theme : the name for selected theme
 
 Example:
 
@@ -95,8 +96,18 @@ function pxInfo($name='name', $return=false)
     case 'encoding':
         $result = strtolower(config::f('encoding')); 
         break;
+    case 'email_site' :
+    	$result = config::f('email_for_sending_notification');
+    	break;
+    case 'theme':
+    	$result = config::f('theme_id');
+    	break;
+    case 'website_name':
+    	$result = $GLOBALS['_PX_render']['website']->f('website_name');
+    	break;
     default:
-        $result = $GLOBALS['_PX_render']['website']->f('website_name');
+    	if (isset($GLOBALS['_PX_render']['website']))
+        	$result = $GLOBALS['_PX_render']['website']->f('website_name');
     }
     
     if ($return) return $result;
@@ -147,12 +158,140 @@ function pxHeadLinks($return=false)
         $result = '<meta name="keywords" content="'
             .htmlspecialchars($GLOBALS['_PX_render']['news']->f('subject')
                               .', '.$GLOBALS['_PX_render']['news']->f('category_keywords')).'" />'."\n";
+    } elseif (config::f('action') == 'Events') {
+        $result = '<meta name="keywords" content="'
+            .htmlspecialchars($GLOBALS['_PX_render']['events']->f('subject')
+                              .', '.$GLOBALS['_PX_render']['events']->f('category_keywords')).'" />'."\n";
     }
     
     if ($return) return $result;
     echo $result;
 }
 
+/**
+ Display the list of primary categories
+
+ @proto function pxPrimaryCategories
+ @param string s Substitution string ('<ul>%s</ul>')
+ @param boolean return Type of return : true return result as a string, false (default) print in stdout
+ */
+function pxMenuPrimaryCategories($s='<ul>%s</ul>',$sub = '<li>%s</li>', $return=false, $orderBy = 'category_name')
+{
+	$ordermanual = config::fbool('order_cat_manual');
+	$remove_numbers = config::fbool('remove_numbers');
+	$order = 'ORDER BY category_path';
+	if ($ordermanual && $orderBy!='') {
+		$order = 'ORDER BY '.$orderBy;
+	}
+	$rootcat = FrontEnd::getCategory('/');
+	$prim    = FrontEnd::getCategories($rootcat->f('category_id'), $order);
+
+	$cats = '';
+	$result = '';
+	while (!$prim->EOF()) {
+		if ($prim->f('category_path') != '/') {
+			$path = $prim->getPath();
+			$name = $prim->f('category_name');
+			if ($remove_numbers) {
+				$name = px_removeNumbers($name);
+			}
+			$title = htmlspecialchars(text::removeEntities(trim(strip_tags(text::parseContent($prim->f('category_description'),'Text')))));
+			$link = '<a id="cat-'.$prim->f('category_id').'" title="'.$title.'" href="'.$path.'">'.htmlspecialchars($name).'</a>'."\n";
+			$link .= pxMenuCategory($prim->f('category_id'),'<ul class="subnav" >%s</ul>',$sub,true);
+			$cats .= sprintf($sub, $link);
+		}
+		$prim->moveNext();
+	}
+	$result = sprintf($s, $cats);
+
+	if ($return) return $result;
+	echo $result;
+}
+
+
+
+/**
+ Display the list of primary categories
+
+ @proto function pxPrimaryCategories
+ @param string s Substitution string ('<ul>%s</ul>')
+ @param boolean return Type of return : true return result as a string, false (default) print in stdout
+ */
+function pxMenuCategory($idCat,$s='<ul>%s</ul>',$sub = '<li>%s</li>', $return=false, $orderBy = 'category_name')
+{
+	$ordermanual = config::fbool('order_cat_manual');
+	$remove_numbers = config::fbool('remove_numbers');
+	$order = 'ORDER BY category_path';
+	if ($ordermanual && $orderBy!='') {
+		$order = 'ORDER BY '.$orderBy;
+	}
+	//$rootcat = FrontEnd::getCategory('/');
+	$prim    = FrontEnd::getCategories($idCat, $order);
+
+	$cats = '';
+	$result = '';
+	while (!$prim->EOF()) {
+		if ($prim->f('category_path') != '/') {
+			$path = $prim->getPath();
+			$name = $prim->f('category_name');
+			if ($remove_numbers) {
+				$name = px_removeNumbers($name);
+			}
+			$link = '<a id="cat-'.$prim->f('category_id').'" href="'.$path.'">'.htmlspecialchars($name).'</a>'."\n";
+			// get the child-categories
+			$link .= pxMenuCategory($prim->f('category_id'),$s,$sub,$return);
+			$cats .= sprintf($sub, $link);
+			
+		}
+		$prim->moveNext();
+	}
+	if ($cats!='') $result = sprintf($s, $cats);
+
+	if ($return) return $result;
+	echo $result;
+}
+
+
+/**
+ Return the array of categories
+
+ @proto function pxArrayCategory
+ @param integer idCat Category id
+ @param string orderBy (ORDER BY category_name) 
+ */
+function pxArrayCategory($idCat,$orderBy = 'ORDER BY category_name')
+{
+	$ordermanual = config::fbool('order_cat_manual');
+	$remove_numbers = config::fbool('remove_numbers');
+	$order = 'ORDER BY category_path';
+	if ($ordermanual && $orderBy!='') {
+		$order = $orderBy;
+	}
+	$prim    = FrontEnd::getCategories($idCat, $order);
+	
+	$cats = array();
+	// boucle sur les catégories
+	while (!$prim->EOF()) {
+		if ($prim->f('category_path') != '/') {
+			$path = $prim->f('category_path');
+			$name = $prim->f('category_name');
+			if ($remove_numbers) {
+				$name = px_removeNumbers($name);
+			}
+			$cats[]=array(
+					'id' => $prim->f('category_id'),
+					'path' => $path,
+					'url' => $prim->getPath(),
+					//'title' => Text::parseHtmlToText($prim->f('category_description')),
+					'title' => trim(text::parseContent($prim->f('category_description'),'Text')),
+					'name' => $name,
+					'sublevel' => pxArrayCategory($prim->f('category_id'),$orderBy),
+					);				
+		}
+		$prim->moveNext();
+	}
+	return $cats;
+}
 
 
 /**
@@ -219,7 +358,9 @@ function pxRssItems($return=false)
 */
 function pxSingleCatTitle($s='%s - ', $return=false)
 {
-    $title = $GLOBALS['_PX_render']['cat']->f('category_name');
+	$title='';
+	if (isset($GLOBALS['_PX_render']['cat']))
+    	$title = $GLOBALS['_PX_render']['cat']->f('category_name');
     if (config::fbool('remove_numbers')) 
         $title = px_removeNumbers($title);
     $result = sprintf($s, htmlspecialchars($title));
@@ -236,6 +377,9 @@ function pxSingleCatTitle($s='%s - ', $return=false)
 */
 function pxSingleCatDescription($return=false)
 {
+	if (! isset($GLOBALS['_PX_render']['cat']))
+		return false;
+	
     $result = text::parseContent($GLOBALS['_PX_render']['cat']->f('category_description'));
     
     if ($return) return $result;
@@ -555,7 +699,8 @@ function pxSubCategories($s='%s', $return=false)
 */
 function pxSearchQuery($s= '%s', $return=false)
 {
-    $result = sprintf($s, htmlspecialchars(config::f('query_string')));
+	$query = trim(config::f('query_string')); //query_string_origin
+    $result = sprintf($s, htmlspecialchars($query));
     
     if ($return) return $result;
     echo $result;
@@ -634,6 +779,8 @@ function pxResPath($type='relative', $return=false)
 function pxResDescription($s='%s', $limit=0, $return=false)
 {
     $result = '';
+    //echo $GLOBALS['_PX_render']['res']->f('resource_id');
+    //return;
     if ($limit) {
         $text = text::truncate(text::parseContent($GLOBALS['_PX_render']['res']->f('description'), 'text'), $limit);
         $result = sprintf($s, $text);
@@ -671,10 +818,10 @@ function pxResCategories($s='%s', $p1=', ', $p2=' and ', $return=false)
         if ($remove_numbers) $title = px_removeNumbers($title);
         $res .= sprintf($link, $cat->getPath(), htmlspecialchars($title));
         if ($nr >= 2 && ($i < ($nr - 1))) {
-            $res .= $p1;
+            $res .= trim($p1).'&nbsp;';
         }
         if ($nr >= 2 && ($i == ($nr - 1))) {
-            $res .= $p2;
+            $res .= '&nbsp;'.trim($p2).'&nbsp;';
         }
         $i++;
         $cat->moveNext();
@@ -694,7 +841,8 @@ function pxResCategories($s='%s', $p1=', ', $p2=' and ', $return=false)
 */
 function pxResAuthor($return=false)
 {
-    $result = $GLOBALS['_PX_render']['res']->extf('authors', 'user_realname');
+	if (isset($GLOBALS['_PX_render']['res']))
+    	$result = $GLOBALS['_PX_render']['res']->extf('authors', 'user_realname');
     
     if ($return) return $result;
     echo $result;
@@ -820,6 +968,13 @@ function pxResCountComments($return=false)
     echo $result;
 }
 
+function pxResCommentAvailable() {
+	if ($GLOBALS['_PX_render']['res']->f('comment_support') != 1) 
+		return false;
+	else
+		return true;
+}
+
 
 /**
  @proto doc
@@ -844,15 +999,46 @@ function pxResCountComments($return=false)
  *
  * @proto function pxGetLastResources
  * @param int limit Number of last resources (5)
- * @param string type Type of resources ('') for all, 'news' or 'articles'
+ * @param string type Type of resources ('') for all, 'news', 'events','rsslinks' or 'articles'
+ * @param mixed category Category path or id ('')
+ * @param boolean Set true if to get the online resources
+ * @param boolean return Type of return : true, return result as a recordset, false (default) save in globals var
+ */
+function pxGetLastResources($limit=5, $type='', $category='',  $online = false, $return=false, $order='ORDER BY %sresources.publicationdate DESC') 
+{
+	if (!$online) 
+		$result = FrontEnd::getResources($category,$limit, $type, 1);
+	else 
+		$result = FrontEnd::getOnlineResourcesInCat($category, '', $limit, $type,1, $order);
+				//'ORDER BY %sresources.path');
+   $GLOBALS['_PX_render']['last'] = $result;
+        
+    if ($return) return $result;
+}
+
+/**
+ * Get the list of last resources by subtype and put them in $last
+ * Must be run before using the $last loop
+ *
+ * @proto function pxGetLastResourcesBySubType
+ * @param int limit Number of last resources (5)
+ * @param int subtype Subtype id ('')
  * @param int category Category id ('')
  * @param boolean return Type of return : true, return result as a string, false (default) print in stdout
  */
-function pxGetLastResources($limit=5, $type='', $category='', $return=false) 
+function pxGetLastResourcesBySubType($limit=5, $subtype='', $category='', $return=false) 
 {
     $result = $GLOBALS['_PX_render']['last'] = FrontEnd::getResources($category, 
-                        $limit, $type, 1);
+                        $limit, '', $subtype, 1);
     if ($return) return $result;
+}
+
+
+function pxGetLastModification($dateformat='%Y-%m-%dT%H:%M:%S+00:00', $s='%s', $return = false)  {
+	$GLOBALS['_PX_render']['lastModif']= FrontEnd::getLastModifOfResources();
+    $result = sprintf($s, strftime($dateformat, date::unix($GLOBALS['_PX_render']['lastModif']->f('datemodif'))));
+    if ($return) return $result;
+    echo $result;	
 }
 
 /**
@@ -891,6 +1077,37 @@ function pxLastResPath($type='relative', $return=false)
 }
 
 /**
+ * 
+ * get the type of resource (event, article, news).
+ * @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+ * @return String : the type of the resource
+ */
+function pxLastResType($return=false)  {
+	$result = $GLOBALS['_PX_render']['last']->f('type_id');
+	if ($return) return $result;
+	echo $result;
+}
+
+/**
+ * 
+ * get the name of type of resource (event, article, news).
+ * @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+ * @return String : the name of type of the resource
+ */
+function pxLastResTypeName($return=false)  {
+	$result = $GLOBALS['_PX_render']['last']->f('type_id');
+	if ($result=='events') {
+		$result='Evènements';
+	} else if ($result=='articles') {
+		$result ='Articles';
+	} else if ($result=='news') {
+		$result = 'Brèves';
+	} else $result ='';
+	if ($return) return $result;
+	echo $result;
+}
+
+/**
  Display the description of the resource.
 
  @proto function pxLastResDescription
@@ -906,9 +1123,32 @@ function pxLastResDescription($s='%s', $limit=0, $return=false)
         $text = text::truncate(text::parseContent($GLOBALS['_PX_render']['last']->f('description'), 'text'), $limit);
         $result = sprintf($s, $text);
     } else {
-        $result = text::parseContent($GLOBALS['_PX_render']['last']->f('description'));
+        $result = text::parseContent($GLOBALS['_PX_render']['last']->f('description'),'Text');
+    }
+    $result = html_entity_decode($result,ENT_QUOTES,'UTF-8');
+    if ($return) return $result;
+    echo $result;
+}
+
+function pxLastResDescriptionHtml($s='%s', $limit=false, $return=false)
+{
+    $result = '';
+    $content ='';
+    
+    if ($GLOBALS['_PX_render']['last']->f('page_title') )  { //($this->pxLastResType(true) == 'articles') {
+    	//$content = '<h3>' .$GLOBALS['_PX_render']['last']->f('page_title');
+    	//$content = $GLOBALS['_PX_render']['last']->f('page_content');
+    } else {
+    	$content= $GLOBALS['_PX_render']['last']->f('description');
     }
     
+    if ($limit) {
+        $text = text::truncate(text::parseContent($content, 'html'), $limit);
+        $result = sprintf($s, $text);
+    } else {
+        $result = text::parseContent($content,'html');
+    }
+    $result = htmlspecialchars($result,ENT_COMPAT,'UTF-8');
     if ($return) return $result;
     echo $result;
 }
@@ -1010,6 +1250,28 @@ function pxLastResAssociatedLink($s='<a href="%1$s">%2$s</a>', $return=false)
     if ($return) return $result;
     echo $result;
 }
+
+/**
+ Display the category in which the last ressource is.
+
+ @proto function pxLastResCategory
+ @param string s Substitution string ('%s')
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+ */
+function pxLastResCategory($s='%s', $return=false)
+{
+	$remove_numbers = config::fbool('remove_numbers');
+	$cat = $GLOBALS['_PX_render']['last']->cur;
+	$i = 1;
+	$res = '';
+	$title = $cat->f('category_name');
+	if ($remove_numbers) $title = px_removeNumbers($title);
+	$result = sprintf($s, $title);
+
+	if ($return) return $result;
+	echo $result;
+}
+
 
 /**
  Display the list of categories in which the last ressource is.
@@ -1916,6 +2178,581 @@ function pxNewsCountComments($return=false)
 }
 
 
+/**
+ @proto doc
+
+ !! The events functions
+
+ These functions are to be used in the ''events'' templates.
+
+*/
+
+/**
+ Display the calendat widget for the events
+ 
+ @proto function pxEventsCalendarWidget
+ @param boolean return Type of return : true return result as a string, false (default) print in stdout
+ 
+ */
+function pxEventsCalendarWidget($return = false) {
+	$resp = Hook::run('onEventCalendarList', array('m' => null, 'return'=>$return));
+}
+
+function pxFullCalendar($return = false) {
+	$resp = Hook::run('onFullCalendarShow', array('m' => null, 'return'=>$return));
+}
+
+function pxGallery($return = false)  {
+	$resp = Hook::run('onSlideShow',array('m'=>null, 'return'=>$return));
+}
+
+function pxEventsList($year='',$month='',$day='', $limit=15) {
+	return FrontEnd::getEventsResources('',$limit,$year,$month,$day);
+}
+
+function pxPdfViewer($return = false) {
+	$resp = Hook::run('onPdfViewDoc', array('m' => null, 'return'=>$return));
+}
+
+/**
+ Display the title of a events.
+
+ @proto function pxEventsTitle
+ @param string s Substitution string ('%s')
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+
+*/
+function pxEventsTitle($s='%s', $return=false)
+{
+    $result = $GLOBALS['_PX_render']['events']->getTextContent('title');
+    if (config::fbool('remove_numbers')) {
+       $result = px_removeNumbers($result);
+    }
+    $result = sprintf($s, $result);
+    if ($return) return $result;
+    echo $result;
+}
+
+/**
+ Display the content of a events.
+
+ @proto function pxEventsContent
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+*/
+function pxEventsContent($return=false)
+{
+    $result = text::parseContent($GLOBALS['_PX_render']['events']->f('description'));
+    
+    if ($return) return $result;
+    echo $result;
+}
+
+/**
+ Display the content of a events.
+
+ @proto function pxEventsShortContent
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+*/
+function pxEventsShortContent($return=false)
+{
+    $result = text::parseContent($GLOBALS['_PX_render']['events']->f('event_shortcontent'));
+    
+    if ($return) return $result;
+    echo $result;
+}
+/**
+ Display the keywords or subject of the events.
+
+ @proto function pxNewsKeywords
+ @param string s Substitution string ('%s')
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+*/
+function pxEventsKeywords($s = '%s', $return=false)
+{
+    $result = '';
+    $keywords = trim($GLOBALS['_PX_render']['m']->events->f('subject'));
+    if (strlen($keywords) > 0) {
+        $result = sprintf($s, $keywords);
+    }
+    
+    if ($return) return $result;
+    echo $result;
+}
+
+/**
+ Display the creation date of the events.
+
+ The substitution string for the date is directly given to
+ [strftime|http://www.php.net/strftime]
+
+ @proto function pxEventsDateCreation
+ @param string dateformat Format of the date ('%A %e %B %Y')
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+
+*/
+function pxEventsDateCreation($dateformat='%A %e %B %Y', $return=false)
+{
+    $result = strftime($dateformat, date::unix($GLOBALS['_PX_render']['events']->f('creationdate')));
+    
+    if ($return) return $result;
+    echo $result;
+}
+
+/**
+ Display the publication date of the event.
+
+ The substitution string for the date is directly given to
+ [strftime|http://www.php.net/strftime]
+
+ @proto function pxEventsDatePublication
+ @param string dateformat Format of the date ('%A %e %B %Y')
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+
+*/
+function pxEventsDatePublication($dateformat='%A %e %B %Y', $return=false)
+{
+    $result = strftime($dateformat, date::unix($GLOBALS['_PX_render']['events']->f('publicationdate')));
+    
+    if ($return) return $result;
+    echo $result;
+}
+
+/**
+ Display the modification date of the events. Only if newer than the
+ publication date.
+
+ The substitution string for the date is directly given to
+ [strftime|http://www.php.net/strftime]
+
+ @proto function pxNewsDateModification
+ @param string dateformat Format of the date ('%A %e %B %Y - %T ')
+ @param string s Substitution ('Modified the %s.')
+ @param mixed ifmodified Time in minutes between publication date and modification to display, false to always display it (false)
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+*/
+function pxEventsDateModification($dateformat='%A %e %B %Y', $s='Modified the %s.',
+                                    $ifmodified=false, $return=false)
+{
+    $result = '';
+    if (false !== $ifmodified) {
+        $ifmodified = $ifmodified * 60;
+        $md = date::unix($GLOBALS['_PX_render']['events']->f('modifdate'));
+        $pd = date::unix($GLOBALS['_PX_render']['events']->f('publicationdate'));
+        if ($md > ($ifmodified + $pd)) {
+            $result = sprintf($s, strftime($dateformat, $md));
+        }
+    } else {
+        $result = sprintf($s, strftime($dateformat, date::unix($GLOBALS['_PX_render']['events']->f('modifdate'))));
+    }
+    
+    if ($return) return $result;
+    echo $result;
+}
+
+/**
+ Display the date of end of availaibility of the event. Only if end date.
+
+ The substitution string for the date is directly given to
+ [strftime|http://www.php.net/strftime]
+
+ @proto function pxNewsDateEnd
+ @param string dateformat Format of the date ('%A %e %B %Y - %T ')
+ @param string s Substitution ('End the %s.')
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+*/
+function pxEventsDateEnd($dateformat='%A %e %B %Y', $s='End the %s.', $return=false)
+{
+    $result = '';
+    $y = substr($GLOBALS['_PX_render']['events']->f('enddate'),0,4);
+    if ((int)$y < 9999) {
+        $result = sprintf($s, strftime($dateformat , date::unix($GLOBALS['_PX_render']['events']->f('enddate'))));
+    }
+    
+    if ($return) return $result;
+    echo $result;
+}
+
+/**
+ Display the name of the author
+
+ @proto function pxEventsAuthor
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+*/
+function pxEventsAuthor($return=false)
+{
+    $result = $GLOBALS['_PX_render']['events']->authors->f('user_realname');
+    
+    if ($return) return $result;
+    echo $result;
+}
+
+/**
+ Display the author public email if available.
+
+ @proto function pxEventsAuthorEmail
+ @param string s Substitution string ('%s')
+ @param string encoding Encoding for a mailto ('link') or for display 'text'
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+*/
+function pxEventsAuthorEmail($s='%s', $encoding='link', $return=false)
+{
+    $result = '';
+    $text = ($encoding == 'link') ? false : true;
+    if (strlen($GLOBALS['_PX_render']['events']->authors->f('user_pubemail')) > 0) {
+        $result = sprintf($s, text::hexEncode($GLOBALS['_PX_render']['events']->authors->f('user_pubemail'), $text));
+    }
+    
+    if ($return) return $result;
+    echo $result;
+}
+
+/**
+ Display the path to the events.
+
+ @proto function pxEventsPath
+ @param string type 'fullurl' give path with http:// ('relative')
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+*/
+function pxEventsPath($type='relative', $return=false)
+{
+    $result = $GLOBALS['_PX_render']['events']->getPath($type);
+    
+    if ($return) return $result;
+    echo $result;
+}
+
+
+/**
+ Display the list of categories in which the events is.
+
+ The list is not an HTML list, it is to be used as sentence like
+ "Category one, category two and category tree" The category names
+ are linked to the category pages.
+
+ @proto function pxEventsCategories
+ @param string s Substitution string ('%s')
+ @param string p1 First delimiters (', ')
+ @param string p2 Last delimiter (' and ')
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+*/
+function pxEventsCategories($s='%s', $p1=', ', $p2=' and ', $return=false)
+{
+    $cat = $GLOBALS['_PX_render']['events']->cats;
+    $nr = $cat->nbRow();
+    $i = 1;
+    $link = '<a href="%s">%s</a>';
+    $res = '';
+    $remove_numbers = config::fbool('remove_numbers');
+    while (!$cat->EOF()) {
+        $title = $cat->f('category_name');
+        if ($remove_numbers) $title = px_removeNumbers($title);
+        $res .= sprintf($link, $cat->getPath(), htmlspecialchars($title));
+        if ($nr >= 2 && ($i < ($nr - 1))) {
+            $res .= $p1;
+        }
+        if ($nr >= 2 && ($i == ($nr - 1))) {
+            $res .= $p2;
+        }
+        $i++;
+        $cat->moveNext();
+    }
+    $result = sprintf($s, $res);
+    
+    if ($return) return $result;
+    echo $result;
+}
+
+
+/**
+ Display the number of comments of the news.
+
+ @proto function pxArtCountComments
+ @param boolean return Type of return : true return result as a string, false (default) print in stdout
+*/
+function pxEventsCountComments($return=false)
+{
+    $result = $GLOBALS['_PX_render']['events']->countComments();
+    if ($return) return $result;
+    echo $result;
+}
+
+
+
+
+/**
+ @proto doc
+
+ !! The rsslinks functions
+
+ These functions are to be used in the ''news'' templates.
+
+ */
+
+/**
+ Display the title of a events.
+
+ @proto function pxEventsTitle
+ @param string s Substitution string ('%s')
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+
+ */
+function pxRsslinksTitle($s='%s', $return=false)
+{
+	$result = $GLOBALS['_PX_render']['rsslinks']->getTextContent('title');
+	if (config::fbool('remove_numbers')) {
+		$result = px_removeNumbers($result);
+	}
+	$result = sprintf($s, $result);
+	if ($return) return $result;
+	echo $result;
+}
+
+/**
+ Display the content of a events.
+
+ @proto function pxEventsContent
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+ */
+function pxRsslinksContent($return=false)
+{
+	$result = text::parseContent($GLOBALS['_PX_render']['rsslinks']->f('description'));
+
+	if ($return) return $result;
+	echo $result;
+}
+
+/**
+ Display the content of a rsslinks.
+
+ @proto function pxRsslinksShortContent
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+ */
+function pxRsslinksShortContent($return=false)
+{
+	$result = text::parseContent($GLOBALS['_PX_render']['rsslinks']->f('event_shortcontent'));
+
+	if ($return) return $result;
+	echo $result;
+}
+/**
+ Display the keywords or subject of the rsslinks.
+
+ @proto function pxNewsKeywords
+ @param string s Substitution string ('%s')
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+ */
+function pxRsslinksKeywords($s = '%s', $return=false)
+{
+	$result = '';
+	$keywords = trim($GLOBALS['_PX_render']['rsslinks']->f('subject'));
+	if (strlen($keywords) > 0) {
+		$result = sprintf($s, $keywords);
+	}
+
+	if ($return) return $result;
+	echo $result;
+}
+
+/**
+ Display the creation date of the rsslinks.
+
+ The substitution string for the date is directly given to
+ [strftime|http://www.php.net/strftime]
+
+ @proto function pxRsslinksDateCreation
+ @param string dateformat Format of the date ('%A %e %B %Y')
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+
+ */
+function pxRsslinksDateCreation($dateformat='%A %e %B %Y', $return=false)
+{
+	$result = strftime($dateformat, date::unix($GLOBALS['_PX_render']['rsslinks']->f('creationdate')));
+
+	if ($return) return $result;
+	echo $result;
+}
+
+/**
+ Display the publication date of the event.
+
+ The substitution string for the date is directly given to
+ [strftime|http://www.php.net/strftime]
+
+ @proto function pxRsslinksDatePublication
+ @param string dateformat Format of the date ('%A %e %B %Y')
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+
+ */
+function pxRsslinksDatePublication($dateformat='%A %e %B %Y', $return=false)
+{
+	$result = strftime($dateformat, date::unix($GLOBALS['_PX_render']['rsslinks']->f('publicationdate')));
+
+	if ($return) return $result;
+	echo $result;
+}
+
+/**
+ Display the modification date of the rsslinks. Only if newer than the
+ publication date.
+
+ The substitution string for the date is directly given to
+ [strftime|http://www.php.net/strftime]
+
+ @proto function pxNewsDateModification
+ @param string dateformat Format of the date ('%A %e %B %Y - %T ')
+ @param string s Substitution ('Modified the %s.')
+ @param mixed ifmodified Time in minutes between publication date and modification to display, false to always display it (false)
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+ */
+function pxRsslinksDateModification($dateformat='%A %e %B %Y', $s='Modified the %s.',
+		$ifmodified=false, $return=false)
+{
+	$result = '';
+	if (false !== $ifmodified) {
+		$ifmodified = $ifmodified * 60;
+		$md = date::unix($GLOBALS['_PX_render']['rsslinks']->f('modifdate'));
+		$pd = date::unix($GLOBALS['_PX_render']['rsslinks']->f('publicationdate'));
+		if ($md > ($ifmodified + $pd)) {
+			$result = sprintf($s, strftime($dateformat, $md));
+		}
+	} else {
+		$result = sprintf($s, strftime($dateformat, date::unix($GLOBALS['_PX_render']['rsslinks']->f('modifdate'))));
+	}
+
+	if ($return) return $result;
+	echo $result;
+}
+
+/**
+ Display the date of end of availaibility of the event. Only if end date.
+
+ The substitution string for the date is directly given to
+ [strftime|http://www.php.net/strftime]
+
+ @proto function pxNewsDateEnd
+ @param string dateformat Format of the date ('%A %e %B %Y - %T ')
+ @param string s Substitution ('End the %s.')
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+ */
+function pxRsslinksDateEnd($dateformat='%A %e %B %Y', $s='End the %s.', $return=false)
+{
+	$result = '';
+	$y = substr($GLOBALS['_PX_render']['rsslinks']->f('enddate'),0,4);
+	if ((int)$y < 9999) {
+		$result = sprintf($s, strftime($dateformat , date::unix($GLOBALS['_PX_render']['rsslinks']->f('enddate'))));
+	}
+
+	if ($return) return $result;
+	echo $result;
+}
+
+/**
+ Display the name of the author
+
+ @proto function pxRsslinksAuthor
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+ */
+function pxRsslinksAuthor($return=false)
+{
+	$result = $GLOBALS['_PX_render']['rsslinks']->authors->f('user_realname');
+
+	if ($return) return $result;
+	echo $result;
+}
+
+/**
+ Display the author public email if available.
+
+ @proto function pxRsslinksAuthorEmail
+ @param string s Substitution string ('%s')
+ @param string encoding Encoding for a mailto ('link') or for display 'text'
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+ */
+function pxRsslinksAuthorEmail($s='%s', $encoding='link', $return=false)
+{
+	$result = '';
+	$text = ($encoding == 'link') ? false : true;
+	if (strlen($GLOBALS['_PX_render']['rsslinks']->authors->f('user_pubemail')) > 0) {
+		$result = sprintf($s, text::hexEncode($GLOBALS['_PX_render']['rsslinks']->authors->f('user_pubemail'), $text));
+	}
+
+	if ($return) return $result;
+	echo $result;
+}
+
+/**
+ Display the path to the rsslinks.
+
+ @proto function pxRsslinksPath
+ @param string type 'fullurl' give path with http:// ('relative')
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+ */
+function pxRsslinksPath($type='relative', $return=false)
+{
+	$result = $GLOBALS['_PX_render']['rsslinks']->getPath($type);
+
+	if ($return) return $result;
+	echo $result;
+}
+
+
+/**
+ Display the list of categories in which the rsslinks is.
+
+ The list is not an HTML list, it is to be used as sentence like
+ "Category one, category two and category tree" The category names
+ are linked to the category pages.
+
+ @proto function pxRsslinksCategories
+ @param string s Substitution string ('%s')
+ @param string p1 First delimiters (', ')
+ @param string p2 Last delimiter (' and ')
+ @param boolean return Type of return : true, return result as a string, false (default) print in stdout
+ */
+function pxRsslinksCategories($s='%s', $p1=', ', $p2=' and ', $return=false)
+{
+	$cat = $GLOBALS['_PX_render']['rsslinks']->cats;
+	$nr = $cat->nbRow();
+	$i = 1;
+	$link = '<a href="%s">%s</a>';
+	$res = '';
+	$remove_numbers = config::fbool('remove_numbers');
+	while (!$cat->EOF()) {
+		$title = $cat->f('category_name');
+		if ($remove_numbers) $title = px_removeNumbers($title);
+		$res .= sprintf($link, $cat->getPath(), htmlspecialchars($title));
+		if ($nr >= 2 && ($i < ($nr - 1))) {
+			$res .= $p1;
+		}
+		if ($nr >= 2 && ($i == ($nr - 1))) {
+			$res .= $p2;
+		}
+		$i++;
+		$cat->moveNext();
+	}
+	$result = sprintf($s, $res);
+
+	if ($return) return $result;
+	echo $result;
+}
+
+
+/**
+ Display the number of comments of the news.
+
+ @proto function pxArtCountComments
+ @param boolean return Type of return : true return result as a string, false (default) print in stdout
+ */
+function pxRsslinksCountComments($return=false)
+{
+	$result = $GLOBALS['_PX_render']['rsslinks']->countComments();
+	if ($return) return $result;
+	echo $result;
+}
+
+
+
+
 
 /**
  * Display the content of a category
@@ -1930,26 +2767,65 @@ function pxSitemapShowCatContent($vals, $type, $limit)
 {
     $cat = $vals['id'];
     $res = FrontEnd::getResources($cat, $limit, $type);
-   
+    
     if ($res->EOF()) {
         $path = $vals['path'];
-        echo sprintf('<li><a href="%s">%s</a></li>'."\n", $path,
+        echo sprintf('<li class="docs-'.$res->f('type_id').'"><a href="%s">%s</a></li>'."\n", $path,
                      __('Show the category content'));
     } else {
         while (!$res->EOF()) {
-            echo sprintf('<li><a href="%s">%s</a></li>'."\n", $res->getPath(), 
+            echo sprintf('<li class="docs-'.$res->f('type_id').'"><a href="%s">%s</a></li>'."\n", $res->getPath(), 
                          px_removeNumbers($res->getTextContent('title')));
          $res->moveNext();
         }
     }
 }
 
+
+/**
+ * Returns subcategories of a Category
+ *
+ * @credits Nicolas LASSALLE.
+ *
+ * @param int category the category we want the subdirectories
+ *
+ * @return array
+ */
+function pxSitemapCategoryList($categoryId)
+{
+	$rep = array();
+	$ordermanual = config::fbool('order_cat_manual');
+	$remove_numbers = config::fbool('remove_numbers');
+	$order = 'ORDER BY category_path';
+	if ($ordermanual) {
+		$order = 'ORDER BY category_position';
+	}
+	$cat    = FrontEnd::getCategory($categoryId);
+
+	if (!$cat->EOF()) {
+		if ($cat->f('category_path') != '/') {
+			$path = $cat->getPath();
+			$name = $cat->f('category_name');
+			if ($remove_numbers) {
+				$name = px_removeNumbers($name);
+			}
+			$rep = array('path' => $path,
+					'name' => $name,
+					'desc' => $cat->f('category_description'),
+					'parentid' => $cat->f('category_parentid'),
+					'id' => $cat->f('category_id'));
+		}
+	}
+	return $rep;
+}
+
+
 /**
  * Returns subcategories of a Category
  * 
  * @credits Nicolas LASSALLE.
  *
- * @param string category the category we want the subdirectories
+ * @param int category the category we want the subdirectories
  *
  * @return array
  */
@@ -1960,7 +2836,7 @@ function pxSitemapCategoriesList($categoryId)
     $remove_numbers = config::fbool('remove_numbers');
     $order = 'ORDER BY category_path';
     if ($ordermanual) {
-        $order = 'ORDER BY category_name';
+        $order = 'ORDER BY category_position';
     }
     $prim    = FrontEnd::getCategories($categoryId, $order);
 
@@ -1991,16 +2867,16 @@ function pxSitemapCategoriesList($categoryId)
  *
  * @return the title to display
  */
-function pxSitemapGetCatTitle($name, $vals) 
+function pxSitemapGetCatTitle($name, $vals, $primary=false) 
 {
     $rootcat = FrontEnd::getCategory('/');
     $rootcatid = $rootcat->f('category_id');
-    if ($vals['parentid'] == $rootcatid) {
-        return sprintf('<a href="%s">%s</a></h3>'."\n".'<p>%s</p>'."\n",
+    if ($primary) {
+        return sprintf('<div class="primaryCatTitle"><a href="%s">%s</a>'."\n".'<span>%s</span></div>'."\n",
                        $vals['path'], $name,
                         strip_tags(trim(text::parseContent($vals['desc']))),$name);
     } else {
-        return sprintf('<a href="%s">%s</a>'."\n".'<p>%s</p>'."\n",
+        return sprintf('<div class="catTitle"><a href="%s">%s</a>'."\n".'<span>%s</span></div>'."\n",
                        $vals['path'], $name,
                         strip_tags(trim(text::parseContent($vals['desc']))),$name);
     }
@@ -2011,19 +2887,20 @@ function pxSitemapGetCatTitle($name, $vals)
  *
  * @credits Nicolas LASSALLE.
  *
- * @param String category the current category to display
- * @param int limit Number of last resources (10)
+ * @param int catId the current category to display
  * @param string type Type of resources ('' or 'all') for all, 'news' or 'articles'
+ * @param int limit Number of last resources (10)
  */
-function pxSitemapShowCategory ($category, $type, $limit) 
+function pxSitemapShowCategory ($catId, $type='', $limit=10) 
 {
-    $list = pxSitemapCategoriesList($category); 
+    $list = pxSitemapCategoriesList($catId); 
     while (list($name, $vals) = each ($list)) {
-        echo sprintf('<li class="subcatlism">%s </li>'."\n",  pxSitemapGetCatTitle($name, $vals)); 
-        echo '<li class="nodeco"><ul>'."\n";
+        echo sprintf('<li class="subcatlism">%s '."\n",  pxSitemapGetCatTitle($name, $vals)); 
+        echo '<ul class="nodeco">'."\n";
         pxSitemapShowCatContent($vals, $type, $limit);
         pxSitemapShowCategory($vals['id'], $type, $limit);
-        echo '</ul></li>'."\n";
+        echo '</ul>'."\n";
+        echo '</li>'."\n";
     }
 }
 
@@ -2036,17 +2913,23 @@ function pxSitemapShowCategory ($category, $type, $limit)
  * @param int limit Number of last resources (10)
  * @param string type Type of resources ('' or 'all') for all, 'news' or 'articles'
  */
-function pxSitemapShowPrimaryCategory ($category, $type, $limit) 
+function pxSitemapShowPrimaryCategory ($category, $type='', $limit=10) 
 {
-    $list = pxSitemapCategoriesList($category);
+    $catInfo = pxSitemapCategoryList($category);
+    echo sprintf('%s'."\n",  pxSitemapGetCatTitle($catInfo['name'], $catInfo,true));
+    echo '<ul class="primaryList">'."\n";
+    pxSitemapShowCatContent($catInfo, $type, $limit);
+    pxSitemapShowCategory($catInfo['id'], $type, $limit);
+    echo '</ul>'."\n";
+    /*
     while (list($name, $vals) = each ($list)) {
-        echo sprintf('<h3>%s'."\n",  pxSitemapGetCatTitle($name,
-$vals));
-        echo '<ul>'."\n";
+        echo sprintf('%s'."\n",  pxSitemapGetCatTitle($name, $vals,true));
+        echo '<ul class="primaryList">'."\n";
         pxSitemapShowCatContent($vals, $type, $limit);
         pxSitemapShowCategory($vals['id'], $type, $limit);
         echo '</ul>'."\n";
     }
+    */
 }
 
 
@@ -2105,6 +2988,17 @@ function pxTemplateInit($params='')
     Hook::run('onInitTemplate');
 }
 
+
+function pxWebsiteName($s = '%s', $return=false) {
+	$website = FrontEnd::getWebsite();
+	if (!$website->EOF()) {
+		if($return)
+			return $website->f('website_id');
+		else
+			echo sprintf($s,$website->f('website_id'));
+	}
+}
+
 /**
  * Set of methods useful for the action method of the resource classes.
  *
@@ -2125,7 +3019,7 @@ class FrontEnd
      * @param string Optional order ('ORDER BY %sresources.publicationdate DESC')
      * @return mixed false or ResourceSet
      */
-    function getResources($category='', $limit=10, $type='', $page=1,
+    public static function getResources($category='', $limit=10, $type='', $page=1,
                           $order='ORDER BY %sresources.publicationdate DESC')
     {
         if ('' == $category) {
@@ -2140,15 +3034,30 @@ class FrontEnd
             .$con->esc(config::f('website_id')).'\''."\n";
         $sql .= ' AND '.$con->pfx.'resources.status=\''
             .PX_RESOURCE_STATUS_VALIDE.'\''."\n";
+        
         if ('' != $type) {
-            $sql .= ' AND '.$con->pfx.'resources.type_id=\''
-                .$con->esc($type).'\''."\n";
-        }
-        $sql .= ' AND '.$con->pfx.'resources.publicationdate <= '
-            .date::stamp();
-        $sql .= ' AND '.$con->pfx.'resources.enddate >= '.date::stamp();
-        $sql .= ' '.$order;
+        	if (strpos($type,',')!== false) {
+        		$typeList= explode(',',$type);
+        		function addDelimiter(&$item, $key) {
+        			$item = '\''.$item.'\'';
+        		}
+        		array_walk($typeList, 'addDelimiter');
 
+        		$type = implode(',',$typeList);
+        		$sql .= ' AND '.$con->pfx.'resources.type_id IN ('
+        				.$type.')'."\n";
+        	} else {
+        		$sql .= ' AND '.$con->pfx.'resources.type_id=\''
+                	.$con->esc($type).'\' '."\n";
+        	}
+        }
+        
+        $sql .= ' AND ( ';
+        $sql .= '('.$con->pfx.'resources.type_id = \'events\' ) '; //AND '.$con->pfx.'resources.enddate >= '.date::stamp().'
+        $sql .= ' OR ('.$con->pfx.'resources.publicationdate <= '.date::stamp();
+        $sql .= ' AND '.$con->pfx.'resources.enddate >= '.date::stamp().') )';
+        $sql .= ' '.$order;
+		
         if (($rs = $con->select($sql, 'Paginator', $limit, $page)) === false) {
             $GLOBALS['_PX_render']['error']->setError('MySQL: '.$con->error(), 
                                                       500);
@@ -2157,6 +3066,118 @@ class FrontEnd
         return $rs;
     }
 
+    /**
+     * Get the online resources in a cat and them sub categories
+     * @param mixed Category path or id
+     * @param mixed Resource path or id
+     * @param int Number of resources per page (10)
+     * @param string Type of resources to limit to ('')
+     * @param int Page number for the pagination (1)
+     * @param string Optional order ('ORDER BY %sresources.publicationdate DESC')
+     * @return mixed false or ResourceSet
+     */
+    public static function getOnlineResourcesInCat($cat, $res, $limit=10, $type='', $page=1,
+                          $order='ORDER BY %sresources.publicationdate DESC') {
+    	
+    	$con =& pxDBConnect();
+    	$sql = SQL::getOnlineResourceInCat($res, $cat, $con->esc(config::f('website_id')));
+    	if ('' != $type) {
+    		if (strpos($type,',')!== false) {
+    			$typeList= explode(',',$type);
+    			function addDelimiter(&$item, $key) {
+    				$item = '\''.$item.'\'';
+    			}
+    			array_walk($typeList, 'addDelimiter');
+    		
+    			$type = implode(',',$typeList);
+    			$sql .= ' AND '.$con->pfx.'resources.type_id IN ('
+    					.$type.') '."\n";
+    		} else {
+    			$sql .= ' AND '.$con->pfx.'resources.type_id=\''
+    					.$con->esc($type).'\' '."\n";
+    		}
+
+    	}
+
+    	$order = sprintf($order, $con->pfx);
+    	$sql .= ' '.$order;
+    	//echo $sql;
+    	if (($rs = $con->select($sql, 'Paginator', $limit, $page)) === false) {
+    		$GLOBALS['_PX_render']['error']->setError('MySQL: '.$con->error(),
+    				500);
+    		return false;
+    	}
+    	return $rs;
+    }
+    
+    
+    /**
+     * Get the events resources
+     * @param int Category id
+     * @param int Number of resources to return
+     * @param int Year
+     * @param int Month
+     * @param int Day
+     * @param string Order of the result
+     * @return mixed false or a recordset
+     */
+    public static function getEventsResources($category='', $limit='', $year='', $month='', $day='',  $order='ORDER BY %sevents.event_startdate ASC') {
+    	if ('' == $category) {
+    		$sql = SQL::getResources();
+    	} else {
+    		$sql = SQL::getResourcesInCat($category);
+    	}
+
+    	$con =& pxDBConnect();
+    	$order = sprintf($order, $con->pfx);
+    	
+    	$sql .= ' AND '.$con->pfx.'resources.website_id=\''
+    					.$con->esc(config::f('website_id')).'\''."\n";
+    	$sql .= ' AND '.$con->pfx.'resources.status=\''
+    					.PX_RESOURCE_STATUS_VALIDE.'\''."\n";
+    	$sql .= ' AND '.$con->pfx.'resources.type_id=\'events\' '."\n";
+
+    	if ($year == false || $year =='false' || $year=='') $year = date('Y');
+    	if ($month == '' || $month == 'false' || $month == false) $month = date('m');
+    	$month = substr('00'.$month, -2);
+   	
+    	$sql .= ' AND '.$con->pfx.'events.event_startdate <= '.$year.$month.'31000000 ';
+    	$sql .= ' AND '.$con->pfx.'events.event_enddate >= '.$year.$month.'01000000';
+
+    	$sql .= ' '.$order;
+    	
+    	if ($limit != '') 
+    		$sql .= ' LIMIT '.$limit;
+     	//echo $sql;
+    	if (($rs = $con->select($sql)) === false) {
+    		$GLOBALS['_PX_render']['error']->setError('MySQL: '.$con->error(), 500);
+    		return false;
+    	}
+    	return $rs;
+    }
+    
+    /**
+     * 
+     * Get the last date of modification from the resources of a website
+     * @param String website id (optionnal)
+     * @return result
+     */
+    public static function getLastModifOfResources($website = '')  {
+    	$con = & pxDBConnect();
+        if ('' == $website) {
+            $website = config::f('website_id');
+        }
+    	
+    	$sql = SQL::getLastModif($website);
+        if (($rs = $con->select($sql, 'Category')) !== false) {
+            return $rs;
+        } else {
+            $GLOBALS['_PX_render']['error']->setError('MySQL: '
+                                                      .$this->con->error(), 
+                                                      500);
+            return false;
+        }    
+    }
 
     /** 
      * Get a category by id or path.
@@ -2164,7 +3185,7 @@ class FrontEnd
      * @param mixed Id as int or path as string
      * @return mixed Category or false
      */
-    function getCategory($cat)
+    public static function getCategory($cat)
     {
         if (preg_match('/^[0-9]+$/', $cat)) {
             $sql = SQL::getCategoryById($cat);
@@ -2192,7 +3213,7 @@ class FrontEnd
      * @param string Order ('ORDER BY category_path')
      * @return Category or false
      */
-    function getCategories($parentid='', $order='ORDER BY category_path')
+    public static function getCategories($parentid='', $order='ORDER BY category_path')
     {
         $con =& pxDBConnect();
         $sql = 'SELECT * FROM '.$con->pfx.'categories '
@@ -2206,11 +3227,12 @@ class FrontEnd
         }
         $sql .= ' AND category_path NOT LIKE \'%/\\_%\'';
         $sql .= ' '.$order;
+        
         if (($rs = $con->select($sql, 'Category')) !== false) {
             return $rs;
         } else {
-            $GLOBALS['_PX_render']['error']->setError('MySQL: '.$con->error(), 
-                                                      500);
+            $GLOBALS['_PX_render']['error']->setError('MySQL: '.$con->error(), 500);
+            echo $con->error();
             return false;
         }
 
@@ -2224,7 +3246,7 @@ class FrontEnd
      * @param string Website id ('') current by default
      * @return mixed RecordSet or false in case of error
      */
-    function getWebsite($website='')
+    public static function getWebsite($website='')
     {
         if ('' == $website) {
             $website = config::f('website_id');
@@ -2239,13 +3261,32 @@ class FrontEnd
         }
     }
 
+    
+    /**
+     * Get the websites data.
+     *
+     * @return mixed RecordSet or false in case of error
+     */
+    public static function getWebsites()
+    {
+    	$sql = SQL::getWebsites();
+    	$con =& pxDBConnect();
+    	if (($rs = $con->select($sql)) !== false) {
+    		return $rs;
+    	} else {
+    		$GLOBALS['_PX_render']['error']->setError('MySQL: '.$con->error(), 500);
+    		return false;
+    	}
+    }
+    
+    
 	/**
      * Get extra header from the template extension.
      *
      * @param string Template file
      * @return string Extra header to send
      */
-	function getHeader($template)
+	public static function getHeader($template)
 	{
 		$ext = strtolower(substr(strrchr($template, '.'), 1));
 		$encoding = strtolower(config::f('encoding'));

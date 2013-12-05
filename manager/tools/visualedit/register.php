@@ -27,6 +27,7 @@ class VisualEdit
 {
     function onPrintHeader($name, $p)
     { 
+    	$p=$p[0];
         $p['m']->l10n->loadPlugin($p['m']->user->lang, 'visualedit');
         $_px_ptheme = $p['m']->user->getPluginTheme('visualedit');
         $i = strlen($p['m']->user->wdata[$p['m']->user->website]['website_reurl']);
@@ -56,7 +57,7 @@ class VisualEdit
 	echo 'jsToolBar.prototype.elements.blocks.options.h6.label = \''.addslashes(__('Header 6')).'\'; ';
         echo 'jsToolBar.prototype.elements.strong.title = \''.addslashes(__('Strong emphasis')).'\'; ';
         echo 'jsToolBar.prototype.elements.em.title = \''.addslashes(__('Emphasis')).'\'; ';
-        //echo 'jsToolBar.prototype.elements.ins.title = \''.addslashes(__('Inserted')).'\'; ';
+        echo 'jsToolBar.prototype.elements.ins.title = \''.addslashes(__('Inserted')).'\'; ';
         echo 'jsToolBar.prototype.elements.del.title = \''.addslashes(__('Deleted')).'\'; ';
         echo 'jsToolBar.prototype.elements.quote.title = \''.addslashes(__('Inline quote')).'\'; ';
         echo 'jsToolBar.prototype.elements.code.title = \''.addslashes(__('Code')).'\'; ';
@@ -65,7 +66,8 @@ class VisualEdit
         echo 'jsToolBar.prototype.elements.br.title = \''.addslashes(__('Line break')).'\'; ';
         echo 'jsToolBar.prototype.elements.blockquote.title = \''.addslashes(__('Blockquote')).'\'; ';
         echo 'jsToolBar.prototype.elements.pre.title = \''.addslashes(__('Preformated text')).'\'; ';
-	echo 'jsToolBar.prototype.elements.div.title = \''.addslashes(__('Generic block tag')).'\'; ';
+	echo 'jsToolBar.prototype.elements.table.title = \''.addslashes(__('Generate table')).'\'; ';
+        echo 'jsToolBar.prototype.elements.div.title = \''.addslashes(__('Generic block tag')).'\'; ';
         echo 'jsToolBar.prototype.elements.div.style_prompt = \''.addslashes(__('CSS style (leave blank if no style):')).'\'; ';
         echo 'jsToolBar.prototype.elements.ul.title = \''.addslashes(__('Unordered list')).'\'; ';
         echo 'jsToolBar.prototype.elements.ol.title = \''.addslashes(__('Ordered list')).'\'; ';
@@ -84,8 +86,10 @@ addLoadEvent(function() {
     form = document.getElementById(\'formPost\');
     if (form) {
         var formatField = null;
+        var excerptTb2 = null;
         if (form.n_content_format) {
-            excerptTb = new jsToolBar(document.getElementById(\'n_content\'));  
+            excerptTb = new jsToolBar(document.getElementById(\'n_content\'));
+            excerptTb2 = new jsToolBar(document.getElementById(\'n_shortcontent\'));  
 	        formatField = document.getElementById(\'n_content_format\');
         } else if (form.a_description_format) {
             excerptTb = new jsToolBar(document.getElementById(\'a_description\'));  
@@ -96,20 +100,25 @@ addLoadEvent(function() {
         } else if (form.c_format) {
             excerptTb = new jsToolBar(document.getElementById(\'c_description\'));  
             formatField = document.getElementById(\'c_format\');
-        }
+        } 
+
         elt = document.getElementById(\'insert-img\');
         if (elt) elt.style.display = \'none\';
         if (formatField) {
             formatField.onchange = function() {
                 if (this.value == \'wiki\') {
 		            excerptTb.switchMode(this.value);
+		            if (excerptTb2 != null) excerptTb2.switchMode(this.value);
                 } else {
                     excerptTb.switchMode(\'xhtml\');
+                    if (excerptTb2 != null) excerptTb2.switchMode(\'xhtml\');
                 }
             };
             excerptTb.draw();
+           if (excerptTb2 != null) excerptTb2.draw();
             if (formatField.value == \'wiki\') {
                 excerptTb.switchMode(\'wiki\');
+                if (excerptTb2 != null) excerptTb2.switchMode(\'wiki\');
             }
         }
     }

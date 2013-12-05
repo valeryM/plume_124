@@ -33,6 +33,8 @@ include_once $_PX_config['manager_path'].'/inc/class.error404.php';
 include_once $_PX_config['manager_path'].'/inc/class.category.php';
 include_once $_PX_config['manager_path'].'/inc/class.resource.php';
 include_once $_PX_config['manager_path'].'/inc/class.news.php';
+include_once $_PX_config['manager_path'].'/inc/class.events.php';
+include_once $_PX_config['manager_path'].'/inc/class.rsslinks.php';
 include_once $_PX_config['manager_path'].'/inc/class.article.php';
 include_once $_PX_config['manager_path'].'/inc/class.resourceset.php';
 include_once $_PX_config['manager_path'].'/inc/lib.frontend.php';

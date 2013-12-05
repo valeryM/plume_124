@@ -76,12 +76,13 @@ if (!empty($_POST['save'])) {
 	$px_realname = trim($_POST['u_realname']);
 	$px_email    = trim($_POST['u_email']);
 	$px_pubemail = trim($_POST['u_pubemail']);
+	$px_lang = trim($_POST['u_lang']);
 
-	$ok = $m->user->savePref('lang', trim($_POST['u_lang']), '#all#');
+	$ok = $m->user->savePref('lang', $px_lang, '#all#');
 	if ($ok !== true) {
 		$m->setError($ok, 500);
 	}
-	if (($ok === true) && false !== ($id = $m->saveUser($px_id, $px_username, $px_password, $px_realname, $px_email, $px_pubemail))) {
+	if (($ok === true) && false !== ($id = $m->saveUser($px_id, $px_username, $px_password, $px_realname, $px_email, $px_pubemail,null,0,'', $px_lang))) {
         $m->setMessage(__('Preferences successfully saved.'));
         header('Location: prefs.php');
         exit;
@@ -152,13 +153,18 @@ echo form::combobox('u_default', $arry_websites, $px_default);
   </p>
 </form>
 <?php
+/*
 if (count($themes_list) > 1):
 ?>
+
 <hr class="soft" />
+
 <h2><?php  echo __('Manager Themes'); ?></h2>
 
 <dl class="themes-list">
+
 <?php
+
 	reset($themes_list);
 	foreach($themes_list as $theme) {
 		echo '<dt><img alt="" src="themes/'.$theme['name'].'/preview.png" /> <span class="theme_style">'.$theme['label'].'</span> '.__('by').' <span class="author_style">'.$theme['author'].'</span></dt>'."\n";
@@ -169,8 +175,12 @@ if (count($themes_list) > 1):
 		echo '</dd>'."\n\n";
 	}
 	echo '</dl>'."\n";
-endif;
 
+endif;
+?>
+</dl>
+<?php 
+*/
 /*=================================================
  Load common bottom page
 =================================================*/

@@ -25,6 +25,8 @@ require_once $_PX_config['manager_path'].'/inc/class.l10n.php';
 require_once $_PX_config['manager_path'].'/inc/class.checklist.php';
 require_once $_PX_config['manager_path'].'/inc/class.files.php';
 require_once $_PX_config['manager_path'].'/inc/class.manager.php';
+require_once $_PX_config['manager_path'].'/inc/class.user.php';
+require_once $_PX_config['manager_path'].'/inc/lib.auth.php';
 require_once $_PX_config['manager_path'].'/inc/lib.utils.php';
 require_once $_PX_config['manager_path'].'/inc/lib.sqlutils.php';
 require_once $_PX_config['manager_path'].'/inc/lib.form.php';

@@ -57,29 +57,64 @@ $s = new Search($con, $m->user->website);
 //-- Index a resource if asked --//
 if (!empty($_GET['op']) && 'index' == $_GET['op'] && !empty($_GET['id'])) {
 	list($type, $id) = split('-', $_GET['id']);
-	if ('art' == $type) $type = 'Article';
-	else $type = 'News';
+	if ('art' == $type) {
+		$type = 'Article';
+	} else if ('events' == $type)  {
+		$type = "Events";
+	} else $type = 'News';
 	$id = trim($id);
 	if (false !== ($res = $m->getResourceByIdentifier($id, $type))) {
 		if ($id == $res->f('resource_id')) {
-			if (false !== $m->indexResource($res)) {
+			$m->indexRemove($res);
+			if (false !==  $m->indexResource($res) ) {
 				$msg =  __('The resource has been successfully indexed.');
+				//$msg = 'contenu: '.html_entity_decode($res->getAsString());
 				header('Location: tools.php?p=searchmng&env='.$env.'&msg='.urlencode($msg));
 				exit;
 			}
 		}
 	}
+} else if (!empty($_GET['op']) && 'index' == $_GET['op'] && empty($_GET['id'])) {
+// index all the resources if asked
+	if (false !== $res = $m->getResources('', '', '', '', '', '', '', '', true)) {//		getResourcesFromPath('/') ) {
+		//Charge la liste des resources
+		$cpt = 0;
+		$ok = 0;
+		$msg = '';
+		while (!$res->EOF())  {
+			$cpt++;
+			$id = $res->f('resource_id');
+			$type = $res->f('type_id');
+			if  ($type == 'articles') {
+				$class = 'Article';
+			} else if ($type == 'events') {
+				$class = 'Events';
+			} else $class = 'News';
+			// charge l'objet ressource correspondant
+			if (false !== ($resObj = $m->getResourceByIdentifier($id, $class))) {
+				// demande l'indexation
+				if (false !== $m->indexResource($resObj))  {
+					//echo 'resource :'.$id. ' indexée<br>';
+					$ok++;
+				} else $msg .= 'Ressource : '.$id. ' non indexée';
+			}
+			$res->moveNext();
+		}
+		$msg .= $ok .'/'.$cpt.' ressources indexée(s)<br>';
+		header('Location: tools.php?p=searchmng&env='.$env.'&msg='.urlencode($msg));
+		//exit;
+	}
+		
 }
 
 //-- Clean the index if asked --//
 if (!empty($_GET['op']) && 'clean' == $_GET['op']) {
 	if (false !== ($words = $s->clean_index())) {
-		$msg =  sprintf(__('The index has been cleaned with <strong>%s</strong> unused word(s) removed.'), $words);
+		$msg =  sprintf(__('The index has been cleaned with <b>%s</b> unused word(s) removed.'), $words);
 		header('Location: tools.php?p=searchmng&msg='.urlencode($msg));
 		exit;
 	}
 }
-
 
 
 
@@ -114,6 +149,7 @@ while (($rs !== false) && !$rs->EOF()) {
 <?php
 
 $objLum = new lum($env, 'line_res', $rs_list, 0, 20);
+
 $objLum->htmlHeader = '<table class="clean-table">'."\n".'<tr><th>'.__('Status').'</th><th>'.__('Resource title').'</th><th>'.__('Last indexation').'</th><th colspan="2">'.__('Number').'</th></tr>'."\n";
 
 $objLum->htmlLineStart = '';
@@ -148,5 +184,8 @@ $status = '<img src="tools/searchmng/themes/'.$_px_ptheme.'/icon_%s.png" alt="%s
 </ul>
 
 <h2><?php  echo __('Index maintenance'); ?></h2>
+<?php $url = 'tools.php?p=searchmng&amp;op=index'; ?>
+<p><?php echo sprintf(__('<a href="%s">Index all the resources</a>. This operation may take a long time and is database intensive.'), $url); ?></p>
+<p></p>
 <?php $url = 'tools.php?p=searchmng&amp;op=clean'; ?>
 <p><?php echo sprintf(__('<a href="%s">Clean the index of unused words</a>. This operation may take a long time and is database intensive.'), $url); ?></p>

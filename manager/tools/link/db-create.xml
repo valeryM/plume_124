@@ -44,6 +44,7 @@
 		string="{{PREFIX}}links">SHOW TABLES LIKE '{{PREFIX}}links'</test>
 		CREATE TABLE {{PREFIX}}links (
 		link_id int(10) unsigned NOT NULL auto_increment,
+		zone varchar(30) NOT NULL default 'links',
 		website_id varchar(50) NOT NULL default '',
 		href varchar(250) NOT NULL default '',
 		label varchar(250) NOT NULL default '',
@@ -51,15 +52,18 @@
 		lang char(2) NOT NULL default '',
 		rel varchar(250) NOT NULL default '',
 		position int(10) unsigned NOT NULL default '0',
+		cible varcher(30) NOT NULL default '',
+		style varchar(30) NOT NULL default '',
 		PRIMARY KEY	(link_id),
-		KEY website_id (website_id)
+		KEY website_id (website_id),
+		KEY zone (zone)
 		) {{TYPE}} {{CHARSET}}
 	</action>
 	
 	<action id="links.insert.plume" label="Creation of link Plume">
 		INSERT INTO `{{PREFIX}}links` 
-		(link_id, website_id, href, label, title, lang, rel, position) VALUES 
-		(1, 'default', 'http://pxsystem.sourceforge.net/', 'PLUME CMS', 'Official Website of Plume CMS', 'en', '', 1)
+		(link_id, website_id, href, label, title, lang, rel, position, style) VALUES 
+		(1, 'default', 'http://pxsystem.sourceforge.net/', 'PLUME CMS', 'Official Website of Plume CMS', 'en', '', 1,'')
 	</action>
 	<action id="links.insert.fsf" label="Creation of link FSF">
 		INSERT INTO `{{PREFIX}}links`

@@ -73,7 +73,9 @@ if (empty($_REQUEST['op']) && empty($_REQUEST['site_id'])) {
 	$px_description      = __('Description of the __new website__.');
 	$px_sitelang         = $m->user->lang;
     $px_comment_status   = 1;
+    $px_comment_value = 1;
     $px_comment_support  = 1;
+    $px_image_name = '';
 	$arry_langs = l10n::getIsoCodes(true);
 
 	if (!empty($_REQUEST['site_id']) && empty($_REQUEST['op'])) {
@@ -111,7 +113,9 @@ if (empty($_REQUEST['op']) && empty($_REQUEST['site_id'])) {
 			$px_sitelang     = $_PX_website_config['lang'];
 			$px_website_path = substr(files::real_path($_PX_website_config['xmedia_root']), 0, (-1 - strlen($px_xmedia_name)));
             $px_comment_status = $_PX_website_config['comment_default_status'];
+            $px_comment_value = $_PX_website_config['comment_default_value'];
             $px_comment_support = $_PX_website_config['comment_support'];
+            $px_image_name = $px_site->f('website_img');
 			$update = true;
 		}
 	}
@@ -137,8 +141,9 @@ if ($is_editable && (!empty($_POST['save']))) {
 	$px_description = form::getPostField('s_description');
 	$px_sitelang = form::getPostField('s_sitelang');
     $px_comment_status =  form::getPostField('s_comment_status');
+    $px_comment_value = form::getPostField('s_comment_value');
     $px_comment_support =  form::getPostField('s_comment_support');
-
+	$px_image_name = form::getPostField('s_image_name');
 	if ($is_full_editable) {
 		$px_website_address = form::getPostField('s_website_address');
 		$px_website_path = form::getPostField('s_website_path');
@@ -149,8 +154,8 @@ if ($is_editable && (!empty($_POST['save']))) {
 		if (false !== $m->saveSite($px_id, $px_name, $px_description, 
                                    $px_sitelang, $px_website_address, 
                                    $px_website_path, $px_xmedia_name, 
-                                   $px_comment_support, $px_comment_status, 
-                                   $px_log_new_site)) {
+                                   $px_comment_support, $px_comment_status, $px_comment_value,
+                                   $px_log_new_site,'', $px_image_name)) {
 			$m->setMessage(sprintf(__('Site <strong>%s</strong> successfully saved.'), $px_name));
 			header('Location: sites.php');
 			exit;
@@ -159,8 +164,8 @@ if ($is_editable && (!empty($_POST['save']))) {
 		if (false !== $m->saveSite($px_id, $px_name, $px_description, 
                                    $px_sitelang, $px_website_address, 
                                    $px_website_path, $px_xmedia_name, 
-                                   $px_comment_support, $px_comment_status, 
-                                   $px_log_new_site)) {
+                                   $px_comment_support, $px_comment_status, $px_comment_value,
+                                   $px_log_new_site, '', $px_image_name)) {
 			$m->setMessage(sprintf(__('Site <strong>%s</strong> successfully added.'), $px_name));
             //Save the log in the session
             //the header is to prevent a double "addition".
@@ -223,16 +228,26 @@ if($is_new_site) {
  Show the list of websites.
 =================================================*/
 	while(!$px_sites->EOF()) {
-		if (auth::asLevel(PX_AUTH_ADMIN, $px_sites->f('website_id'))) {
+		//if (auth::asLevel(PX_AUTH_ADMIN, $px_sites->f('website_id'))) {
 			echo '<div class="resourcebox" id="p'.$px_sites->f('website_id').'">';
 			echo '<p class="resource_title">';
 			echo '<span class="sitename_style"><a href="'.$px_sites->f('website_url').'">'.$px_sites->f('website_name').'</a></span>';
 			echo ' <span class="notification">('.$px_sites->f('website_id').')</span> ';
 			echo '[<span class="editlink"><a href="sites.php?site_id='.$px_sites->f('website_id').'">'. __('edit').'</a></span>]</p>';
-			echo "<div class=\"description_style\">\n".$px_sites->f('website_description')."</div>\n";
+				
+			echo "<div class=\"description_style\">\n";
+			if ($px_sites->f('website_img')!='' && $px_sites->f('website_img')!=null ) {
+				$img_url = 'themes/'.$_px_theme.'/images/'.$px_sites->f('website_img');
+				echo '<span style="display:inline;" ><img style="height:25px;" src="'.$img_url.'" alt="image" /></span>';
+				echo '<span >&nbsp;&nbsp;&nbsp;&nbsp;</span>';
+			}
+				
+			echo "<span>".$px_sites->f('website_description')."</span>\n";
+			echo "</div>\n";
+			
 			echo '<p class="subtype_style">'.sprintf(__('<a href="%s">Manage the subtypes of resources</a>.'), 'subtypes.php').'</p>'."\n\n";
 			echo "\n</div>\n\n";
-		}
+		//}
 		$px_sites->moveNext();
 	}
 } elseif (($is_editable && !empty($_REQUEST['site_id'])) or ((!empty($_REQUEST['op']) && 'add' == $_REQUEST['op']) && $is_full_editable)) {
@@ -281,14 +296,18 @@ if($is_new_site) {
   <?php echo form::textField('s_xmedia_name', 15, 255, $px_xmedia_name, '', ''); ?><br />
   <?php  echo __('For example put <em>xmedia</em> or <em>documents</em>.'); ?>
   </p>
+  <p class="field"><label class="float" for="s_image_name" style="display:inline"><strong><?php  echo __('Name of the website image:'); ?></strong></label>
+  <?php echo form::textField('s_image_name', 15, 255, $px_image_name, '', ''); ?>&nbsp;&nbsp;<em><?php echo sprintf(__('In %s'),'manager/themes/'.$_px_theme.'/images/'); ?></em><br />
+  <?php echo __('For example put <em>logo_site.png</em>.'); ?>
+  </p>
+  
 <?php endif; ?>
 
   <p class="field"><label class="float" for="s_sitelang" style="display:inline"><strong><?php  echo __('Main language of the website:'); ?></strong></label>
   <?php echo form::comboBox('s_sitelang', $arry_langs, $px_sitelang); ?>
   </p>
 
-  <p>
-  <label for="s_description"><strong><?php  echo __('Description:'); ?></strong></label>
+  <p class="field"><label class="float" for="s_description" style="display:inline"><strong><?php  echo __('Description:'); ?></strong></label>
   <?php
   echo form::textArea('s_description', 60, 4, $px_description, '', '');
   ?>
@@ -301,31 +320,36 @@ if($is_new_site) {
                                   __('Defined for each individual resource') => 2,
                                   __('Comments closed') => 3), $px_comment_support); ?>
   </p>
-
-
+    <p class="field"><label class="float" for="s_comment_status" style="display:inline"><strong><?php  echo __('Default value for the comment status:'); ?></strong></label>
+  <?php echo form::comboBox('s_comment_value', array(__('Comments open') => 1, __('Comments closed') => 3 ), $px_comment_value); ?>
+  
   <p class="field"><label class="float" for="s_comment_status" style="display:inline"><strong><?php  echo __('Default status of the comments:'); ?></strong></label>
   <?php echo form::comboBox('s_comment_status', array(__('Need validation') => 5, __('Online') =>1 ), $px_comment_status); ?>
+
   </p>
 
-<?php
-if ($update) {
-	echo form::hidden('site_id',$px_id);
-    ?><p class="button"> <input name="save" type="submit" class="submit" value="<?php  echo __('Save [s]'); ?>"  accesskey="<?php  echo __('s'); ?>" />&nbsp;
-    <?php
-} else {
-	echo form::hidden('op','add');
-	echo "\n".'<p>'.__('If all the informations you provided are valid, the system will copy the required files in the right folders. The complete log of those files will be shown to you. No file already available on the system will be overwritten.').'</p>'."\n\n";
-	?> <p class="button"> <input name="save" type="submit" class="submit" value="<?php  echo __('Create the new website'); ?>"  accesskey="<?php  echo __('s') ?>" />
 	<?php
-}
-?>
-<?php
-if ($update && (false === $m->getEarlierDate('m', '', '', $px_id))) {
-	echo '&nbsp;<input name="delete" type="submit" class="submit" '.
-	'value="'.__('Delete [d]').'" accesskey="'.__('d').'" onclick="return '.
-	'window.confirm(\''.addslashes( __('Are you sure you want to delete this site?')).'\')" />';
-}
-echo "\n".'</p></form>';
+	if ($update) {
+		echo form::hidden('site_id',$px_id);
+	    ?><p class="button"> <input name="save" type="submit" class="submit" value="<?php  echo __('Save [s]'); ?>"  accesskey="<?php  echo __('s'); ?>" />&nbsp;
+	    <?php
+	} else {
+		echo form::hidden('op','add');
+		echo "\n".'<p>'.__('If all the informations you provided are valid, the system will copy the required files in the right folders. The complete log of those files will be shown to you. No file already available on the system will be overwritten.').'</p>'."\n\n";
+		?> <p class="button"> <input name="save" type="submit" class="submit" value="<?php  echo __('Create the new website'); ?>"  accesskey="<?php  echo __('s') ?>" />
+		<?php
+	}
+	?>
+	<?php
+	if ($update && (false === $m->getEarlierDate('m', '', '', $px_id))) {
+		echo '&nbsp;<input name="delete" type="submit" class="submit" '.
+		'value="'.__('Delete [d]').'" accesskey="'.__('d').'" onclick="return '.
+		'window.confirm(\''.addslashes( __('Are you sure you want to delete this site?')).'\')" />';
+	}
+	?>
+	</p>
+</form>
+<?php 
 
  if ($update) {
      // get the available themes

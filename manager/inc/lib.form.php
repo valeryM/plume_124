@@ -54,31 +54,43 @@ class form
      * @param string Extra data for javascript scripting ('')
      * @return string HTML string of the form
      */
-    function combobox($name, $arryData, $selected='', $default='', 
-                      $tabindex='', $class='', $html='', $id='')
+    public static function combobox($name, $arryData, $selected='', $default='', 
+                      $tabindex='', $class='', $html='', $id='', 
+                      $multi = false, $nbreLigne=1, $jsEvent='')
     {
         if ($id == '') $id = $name;
         $res = '<select name="'.$name.'" ';
-	
+		if ($multi === true )  {
+			$res = '<select name="'.$name.'[]" multiple ';
+			//$res .= ' MULTIPLE ';
+		} else {
+			$res = '<select name="'.$name.'" ';
+		}
         if($class != '')
             $res .= 'class="'.$class.'" ';
 	
         $res .= 'id="'.$id.'" ';
-                
+		if ($nbreLigne>1) $res .= ' size ="'. $nbreLigne . '" ';                
         $res .= ($tabindex != '') ? 'tabindex="'.$tabindex.'" ' : '';
         if($html != '')
             $res .= $html.' ';
         
+        if ($jsEvent != '')
+        	$res .= $jsEvent;
+        	
         $res .= '>'."\n";
-	
-        if ($selected == '') 
-            $selected = $default;
-
+		if (! is_array($selected)) {
+       		if ($selected == '') $selected = $default;
+		}
+		
         foreach($arryData as $k => $v) {
             $res .= '<option value="'.$v.'"';
-            if($v == $selected)
-                $res .= ' selected="selected"';
-        
+                // is an array ?
+            if (is_array($selected))  {    
+				if (array_key_exists($v, $selected) ) $res .= 'selected="selected"';
+			} else {
+            	if($v == $selected) $res .= ' selected="selected"';
+			}
             $res .= '>'.$k.'</option>'."\n";
         }
 	
@@ -97,7 +109,7 @@ class form
      * @param string Extra information for javascript scripting ('')
      * @return string HTML string of the form
      */
-    function textField($name, $size, $max=0, $default='', $tabindex='', $html='', $id='')
+    public static function textField($name, $size, $max=0, $default='', $tabindex='', $html='', $id='')
     {
         if ($id == '') $id = $name;
         $res = '<input type="text" size="'.$size
@@ -122,7 +134,7 @@ class form
      * @param string Extra information for javascript scripting ('')
      * @return string HTML string of the form
      */
-    function passwordField($id, $size, $max=0, $default='', 
+    public static function passwordField($id, $size, $max=0, $default='', 
                            $tabindex='', $html='')
     {
         $res = '<input type="password" size="'.$size
@@ -137,6 +149,9 @@ class form
     }
 
 
+    
+
+	
     /**
      * Build a date/time set of fields.
      * The array of the date must be in the same order as the
@@ -148,7 +163,7 @@ class form
      * @param string Extra data for javascript scripting ('')
      * @return string HTML string of the form
      */
-    function datetime($id, $date='', $tabindex='', $html='')
+    public static function datetime($id, $date='', $tabindex='', $html='', $dateExplode = true)
     {
         $id = trim($id);
         //Need first to get the correct date
@@ -160,15 +175,24 @@ class form
             $month = sprintf('%02d', $i);
             $months[if_utf8(strftime('%B', strtotime('2000-'.$month.'-01')))] = $month;
         }
-
-        return form::textField($id.'_d', 2, 2, $date[4], $tabindex).' '.
-            form::combobox($id.'_m', $months, $date[3], $tabindex).' '.
-            form::textField($id.'_y', 4, 4, $date[5], $tabindex).' '.
-            __('Time:').' '.
-            form::textField($id.'_h', 2, 2, $date[0], $tabindex).':'.
-            form::textField($id.'_i', 2, 2, $date[1], $tabindex).':'.
-            form::textField($id.'_s', 2, 2, $date[2], $tabindex);
-    }
+        
+		if ($dateExplode)  {
+	        return form::textField($id.'_d', 2, 2, $date[4], $tabindex).' '.
+	            form::combobox($id.'_m', $months, $date[3], $tabindex).' '.
+	            form::textField($id.'_y', 4, 4, $date[5], $tabindex).' '.
+	            __('Time:').' '.
+	            form::textField($id.'_h', 2, 2, $date[0], $tabindex).':'.
+	            form::textField($id.'_i', 2, 2, $date[1], $tabindex).':'.
+	            form::textField($id.'_s', 2, 2, $date[2], $tabindex);
+		} else {
+	        return form::textField($id, 8, 8, $date[5].$date[3].$date[4], $tabindex).' '.
+	            __('Time:').' '.
+	            form::textField($id.'_h', 2, 2, $date[0], $tabindex).':'.
+	            form::textField($id.'_i', 2, 2, $date[1], $tabindex).':'.
+	            form::textField($id.'_s', 2, 2, $date[2], $tabindex);
+		}
+		
+	}
 
     /**
      * Build a textarea field.
@@ -181,7 +205,7 @@ class form
      * @param string Extra information for javascript scripting ('')
      * @return string HTML string of the form element
      */
-    function textArea($name, $cols, $rows, $default='', $tabindex='', $html='',
+    public static function textArea($name, $cols, $rows, $default='', $tabindex='', $html='',
                       $id='')
     {
         if ($id == '') $id = $name;
@@ -206,8 +230,8 @@ class form
      * @param string Class ('')
      * @return string HTML of the button
      */
-    function button($type='submit', $name='', $value='ok', 
-                    $tabindex='', $accesskey='', $class='', $id='')
+    public static function button($type='submit', $name='', $value='ok', 
+                    $tabindex='', $accesskey='', $class='', $id='', $html='')
     {
         if ($id == '') $id = $name;
         $res = '<input type="'.$type.'" value="'.$value.'" ';
@@ -215,6 +239,7 @@ class form
         $res .= ($tabindex != '') ? 'tabindex="'.$tabindex.'" ' : '';
         $res .= ($accesskey != '') ? 'accesskey="'.$accesskey.'" ' : '';
         $res .= ($class != '') ? 'class="'.$class.'" ' : '';
+        $res .= ' '.$html;
         $res .= '/>';
         
         return $res;
@@ -228,13 +253,13 @@ class form
      * @param boolean With_Id
      * @return string HTML of the field
      */
-    function hidden($id, $value, $with_id=true)
+    public static function hidden($id, $value, $with_id=true, $html ='')
     {
     	if ($with_id) {
 			$res = '<input type="hidden" name="'.$id.'" id="'
-            .$id.'" value="'.$value.'" />';
+            .$id.'" value="'.$value.'" '.$html.'/>';
 		} else {
-			$res = '<input type="hidden" name="'.$id.'" value="'.$value.'" />';
+			$res = '<input type="hidden" name="'.$id.'" value="'.$value.'" '.$html.' />';
 		}
 	
 		return $res;
@@ -250,7 +275,7 @@ class form
      * @param string Extra information for javascript scripting ('')
      * @return string HTML of the field
      */
-    function checkbox($id, $value, $checked=false, $tabindex='', $html='')
+    public static function checkbox($id, $value, $checked=false, $tabindex='', $html='')
     {
         $res = '<input type="checkbox" value="'.$value.'" ';
         $res .= 'name="'.$id.'" id="'.$id.'" ';
@@ -271,7 +296,7 @@ class form
      * @param string Id of the field
      * @return string HTML of the field
      */
-    function radio($name, $value, $checked='', $class='', $id='')
+    public static function radio($name, $value, $checked='', $class='', $id='', $html='')
 	{
 		$res = '<input type="radio" name="'.$name.'" value="'.$value.'" ';
 		
@@ -287,7 +312,7 @@ class form
 			$res .= 'checked="checked" ';
 		}
 		
-		$res .= '/>'."\n";
+		$res .= ' '.$html.'/>'."\n";
 		
 		return $res;	
 	}
@@ -304,7 +329,7 @@ class form
      * @param string REQUEST field to get
      * @return string Empty string if field not set.
      */
-    function getField($field)
+    public static function getField($field)
     {
         if (!empty($_REQUEST[$field])) {
             return $_REQUEST[$field];
@@ -320,7 +345,7 @@ class form
      * @param string POST field to get
      * @return string Empty string if field not sent
      */
-    function getPostField($field)
+    public static function getPostField($field)
     {
         if (!empty($_POST[$field])) {
             return $_POST[$field];
@@ -335,7 +360,7 @@ class form
      * @param string Time field to get
      * @return timestamp Time
      */
-    function getTimeField($field)
+    public static function getTimeField($field)
     {
         $field = trim($field);
         $dt_y = (string) sprintf('%04d', form::getPostField($field.'_y'));
@@ -353,8 +378,31 @@ class form
 
         return $dt_y.$dt_m.$dt_d.$dt_h.$dt_i.$dt_s;
     }
-}
 
+
+	/**
+	 * Get Date and time field from a POST method
+	 * @param string Field to get
+	 * @return TimestampTime
+	 */
+	public static function getDateAndTimeField($field)  {
+		$field = trim($field);
+		$dt_date = form::getPostField($field);
+		
+        $dt_h = (string) sprintf('%02d', form::getPostField($field.'_h'));
+        $dt_i = (string) sprintf('%02d', form::getPostField($field.'_i'));
+        $dt_s = (string) sprintf('%02d', form::getPostField($field.'_s'));
+		
+        // Small "fixes"
+        if ($dt_h > 23 || $dt_h < 0) { $dt_h = '00'; }
+        if ($dt_i > 59 || $dt_i < 0) { $dt_i = '00'; }
+        if ($dt_s > 59 || $dt_s < 0) { $dt_s = '00'; }
+        
+        return $dt_date.$dt_h.$dt_i.$dt_s;
+         
+	}
+	
+}
 
 class Validate
 {
@@ -364,9 +412,11 @@ class Validate
      * @param string Email
      * @return bool Success
      */
-    function checkEmail($email)
+    public static function checkEmail($email)
     {
-        if (!eregi('^[_a-z0-9\-]+(\.[_a-z0-9\-\+]+)*@[a-z0-9\-]+(\.[a-z0-9\-]+)*(\.[a-z]{2,4})$', $email)) {
+    	$pattern = '/^[_a-z0-9-]+(\.[_a-z0-9-]+)*@[a-z0-9-]+(\.[a-z0-9-]+)*(\.[a-z]{2,3})$/';
+    	if (!preg_match($pattern, $email)) {
+        //if (!eregi('^[_a-z0-9\-]+(\.[_a-z0-9\-\+]+)*@[a-z0-9\-]+(\.[a-z0-9\-]+)*(\.[a-z]{2,4})$', $email)) {
             return false;
         }
         return true;

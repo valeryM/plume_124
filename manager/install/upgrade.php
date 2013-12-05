@@ -333,11 +333,16 @@ $rsV = $con->select('SELECT VERSION() AS version');
 $mysql_version = preg_replace('/-log$/','',$rsV->f(0));
 $extra = '';
 if (version_compare($mysql_version, '3.23', '>=')) {
-    $extra = 'TYPE=MyISAM';
+    $extra = ' TYPE=MyISAM';
+}
+if (version_compare($mysql_version, '4.1', '>=')) {
+	$extra = ' ENGINE=MyISAM';
+    $charset = 'DEFAULT CHARSET=utf8';
 }
 
 $sql->replace('{{TYPE}}', $extra);
 $sql->replace('{{PREFIX}}',$_PX_config['db']['table_prefix']);
+$sql->replace('{{CHARSET}}',$charset);
 $sql->execute($checklist);
 
 $file = dirname(__FILE__).'/../conf/config.php';

@@ -85,6 +85,38 @@ class Article extends Resource
             $this->con->setError();
             return false;
         }
+    } 
+    
+    /**
+     * Load the pages of an articles.
+     * The pages are stored in $this->pages for later reuse.
+     *
+     * @return bool Success or error
+     */
+    function loadPagesFrom($res_id,$ar)
+    {
+        $this->getConnection();
+        $r = 'SELECT * FROM '.$this->con->pfx.'articles WHERE resource_id=\''.
+            $res_id .'\' ORDER BY page_number ASC';
+        if (($rs = $this->con->select($r, 'Page')) !== false) {
+        	$this->pages = $rs;
+        	$sql = 'INSERT INTO '.$this->con->pfx.'articles  SET 
+        		resource_id = \'' . $ar->f('resource_id') . '\' ,
+        		page_number = \'' . $this->pages->f('page_number') . '\' , 
+        		page_title = \'' . $this->pages->f('page_title') . '\', 
+        		page_content = \'' . $this->pages->f('page_content') . '\', 
+        		page_creationdate = \'' . $this->pages->f('page_creationdate') . '\', 
+        		page_modifdate = \'' . $this->pages->f('page_modifdate') . '\' ';
+        	
+			$this->con->execute($sql);
+			$r = 'SELECT * FROM '.$this->con->pfx.'articles WHERE resource_id=\''.$ar->f('resource_id') .'\' ORDER BY page_number ASC';
+            $this->pages = $this->con->select($r, 'Page');
+            //$ar = $this;
+            return true;
+        } else {
+            $this->con->setError();
+            return false;
+        }
     }
 
     /**
@@ -93,21 +125,24 @@ class Article extends Resource
      * @param string Format of the string (html, wiki, text)
      * @return string The content of the news as a string
      */
-    function getAsString($format='html')
+    function getAsString($format='Html')
     {
         $idx = $this->pages->getIndex();
         $this->pages->moveStart();
 
-        $string = str_repeat($this->f('title').' ', 5);
-        $string .= ' '.str_repeat($this->f('subject').' ', 3);
-        $string .= ' '.str_repeat($this->f('path').' ', 3);
-        $string .= ' '.$this->getFormattedContent('description');
+        $string = str_repeat($this->f('title').' ', 3);
+        $string .= ' '.str_repeat($this->f('subject').' ', 2);
+        //$string .= ' '.str_repeat($this->f('path').' ', 3);
+        $string .= ' '.$this->getFormattedContent('description','Text');
+        //$string .= ' '.text::parseWikiToText($this->f('description'));        
         while (!$this->pages->EOF()) {
-            $string .= ' '.str_repeat($this->pages->f('page_title').' ', 3);
-            $string .= ' '.$this->getFormattedContent('page_content', 'html', 'pages');
+            $string .= ' '.str_repeat($this->pages->f('page_title').' ', 1);
+            $string .= ' '.$this->getFormattedContent('page_content', 'Text', 'pages');
+        	//$string .= ' '.text::parseWikiToText($this->f('page_content'));        
             $this->pages->moveNext();
         }
         $this->pages->move($idx);
+
         return $string;
     }
 
@@ -159,7 +194,8 @@ class Article extends Resource
             $dateend = date::EOT();
         }
         $dateend = date::clean($dateend);
-
+		//if ($filRouge == '') $filRouge =0;
+		
         // Set the values
         $this->setField('subtype_id', $subtype);
         $this->setField('subject', $subject);
@@ -169,6 +205,7 @@ class Article extends Resource
         $this->setField('publicationdate', $datestart);
         $this->setField('enddate', $dateend);
         $this->setField('status', $status);
+        //$this->setField('filRouge', $filRouge);
         $this->setField('comment_support', (int) $comment_support);
 
         $this->isModified = true;
@@ -245,8 +282,10 @@ class Article extends Resource
         }
         $id = $this->isPathInUse($this->f('path'));
         if ($id !== false && $id != $this->f('resource_id')) {
-            $format = __('An article is already using the path: <em>%s</em>. Please use another one.');
-            $this->setError(sprintf($format, $this->f('path')), 400);
+        	
+            //$format = __('An article is already using the path: <em>%s</em>. Please use another one.');
+			$this->setField('version',$this->f('version')+1);
+            //$this->setError(sprintf($format, $this->f('path')), 400);
         }
 
         if (false !== $this->error()) {
@@ -361,7 +400,7 @@ class Article extends Resource
      * @param string Server query string
      * @return int Success code
      */
-    function action($query)
+    public static function action($query)
     {
         Hook::register('onInitTemplate', 'Article', 'hookOnInitTemplate');
         $l10n = new l10n(config::f('lang'));
@@ -390,11 +429,13 @@ class Article extends Resource
             if (!$art->isEmpty()) {
                 $art->load();
             } else {
+            	config::setVar('query_string_origin', Search::parseQueryString($query));
                 return 404;
             }
         } else {
             $GLOBALS['_PX_render']['error']->setError('MySQL: '
                                                       .$con->error(), 500);
+            config::setVar('query_string_origin', Search::parseQueryString($query));
             return 404;
         }
         include_once dirname(__FILE__).'/class.cache.php';
@@ -419,10 +460,20 @@ class Article extends Resource
      * @param array Default parameters (not used)
      * @return bool Success
      */
-    function hookOnInitTemplate($hook, $param)
+    public static function hookOnInitTemplate($hook, $param)
     {
         if (config::f('action') == 'Article') {
             $GLOBALS['_PX_render']['cat'] = FrontEnd::getCategory($GLOBALS['_PX_render']['art']->f('category_id'));;
+            
+            $arrayPath = explode('/',$GLOBALS['_PX_render']['cat']->f('category_path'));
+            // récupère la 1ère catégorie
+            if (count($arrayPath)>0)
+            	$GLOBALS['_PX_render']['mcat'] = FrontEnd::getCategory('/'.$arrayPath[1].'/');
+            if (count($arrayPath)>3)
+            	$GLOBALS['_PX_render']['mchildcat'] = FrontEnd::getCategory('/'.$arrayPath[1].'/'.$arrayPath[2].'/');
+            else
+            	$GLOBALS['_PX_render']['mchildcat'] = false;
+                        
             $GLOBALS['_PX_render']['website'] = FrontEnd::getWebsite();
             if (config::f('order_res_manual')) {
                 $order = 'ORDER BY %sresources.title ASC';
@@ -448,11 +499,12 @@ class Article extends Resource
      * @param string Query string
      * @return array (article path, page number, category path)
      */
-    function parseQueryString($query)
+    public static function parseQueryString($query)
     {
 		$category = '';
         $path = '';
         $page = 1;
+        
         if (preg_match('#^(.*/)([a-z]|[a-z][a-z0-9\_\-]*[a-z])(\d*)$#i', 
                        $query, $match)) {
 			$category = $match[1];
@@ -491,7 +543,7 @@ class Article extends Resource
         //Real INSERT/UPDATE into the tables
         $this->getConnection();
         $update = (0 < (int) $this->f('resource_id')) ? true : false;
-
+		 
         if ($update) {
             $req = 'UPDATE '.$this->con->pfx.'resources SET
                subject     = \''.$this->con->esc($this->f('subject')).'\',
@@ -506,6 +558,7 @@ class Article extends Resource
                status      = \''.$this->con->esc($this->f('status')).'\'
                WHERE
                resource_id = \''.$this->con->esc($this->f('resource_id')).'\'';
+            //               filRouge	   = \''.$this->con->esc($this->f('filRouge')).'\' 
         } else {
             $req = 'INSERT INTO '.$this->con->pfx.'resources SET
                 website_id  = \''.$this->con->esc($this->f('website_id')).'\',
@@ -528,15 +581,17 @@ class Article extends Resource
                 enddate         = \''.date::EOT().'\',
                 status          = \''.$this->con->esc($this->f('status')).'\',
                 size            = \'\',
-                version         = 1,
+                version         = \''.$this->con->esc($this->f('version')) .'\', 
                 comment         = \'\',
                 misc            = \'\',
                 format          = \'text/html\',
                 dctype          = \'Text\',
                 dccoverage      = \'\',
-                rights          = \'\'';
+                rights          = \'\' ';
+               // filRouge	    = \''.$this->con->esc($this->f('filRouge')).'\' ' ;
+            	
         }
-
+//echo $req;
         if (!$this->con->execute($req)) {
             $this->setError('MySQL: '.$this->con->error(), 500);
             return false;
@@ -564,8 +619,8 @@ class Article extends Resource
         if (empty($id)) $id = $this->f('resource_id');
 
         if ($this->addAuthor($this->f('user_id'))
-            && $this->addToCategory($this->f('category_id'))
-            && $this->load($id)) {
+	            && $this->addToCategory($this->f('category_id'))
+	            && $this->load($id)) {
             $this->runPostCommitHook();
             return true;
         } else {
@@ -688,6 +743,7 @@ class Article extends Resource
         return $this->pages->f('page_id');
     }
 
+
     /**
      * Remove a page of the article.
      * Remove the current page.
@@ -710,5 +766,25 @@ class Article extends Resource
         return true;
     }
 
+    /**
+     * Renum all page number
+     * 
+     * @return bool Success
+     */
+    function setPageNumber() {
+    	$this->pages->moveStart();
+        $id  = 1;
+        $countOK = 0;
+        while (!$this->pages->EOF()) {
+        	$this->pages->setField('page_number', $id);
+        	if ($this->commitPage()) $countOK++;
+        	$id++;
+        	$this->pages->moveNext();
+        }
+        if ($countOK == ($id-1)) 
+        	return true;
+       	else
+       		return false;
+    }
 }
 ?>

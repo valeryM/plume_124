@@ -25,6 +25,9 @@ Notizie
 ;Articles
 Articoli
 
+;Rss
+Rss links
+
 ;Files or images
 File o immagini
 
@@ -949,8 +952,8 @@ Cartella madre
 ;Go one folder up.
 Vai alla cartella superiore
 
-;You need now to add the first page of the article. After adding the first page, you can <a href="%s">validate and put online the article</a>.
-Avete bisogno ora di aggiungere la prima pagina di questo articolo. Dopo aver aggiunto la prima pagina, &egrave; possibile <a href="%s"> convalidare e mettere on-line l'articolo </ a>.
+;You need now to add the first page of the article. After adding the first page, you can validate and put online the article.
+Avete bisogno ora di aggiungere la prima pagina di questo articolo. Dopo aver aggiunto la prima pagina, &egrave; possibile convalidare e mettere on-line l'articolo.
 
 ;The comment was successfully deleted.
 Il commento &egrave stato cancellato con  successo.

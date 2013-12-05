@@ -141,6 +141,34 @@ class Connection
         }
     }
 
+    function getTablesList() {
+    	
+    	$sql = 'SHOW TABLES;';
+    	return $this->select($sql);    	
+    }
+    
+    function getTableDefinition($table) {
+    	$sql = "SHOW CREATE TABLE `".$table."`;";
+    	/*
+    	$cur = mysql_unbuffered_query($sql, $this->con_id);
+    	if (!$cur) {
+    		$this->setError();
+    		return false;
+    	} else {
+    		$i = 0;
+    		$arryRes = array();
+    		while ($res = mysql_fetch_row($cur)) {
+    			for ($j=0; $j<count($res); $j++) {
+    				$arryRes[$i][strtolower(mysql_field_name($cur, $j))] = $res[$j];
+    			}
+    			$i++;
+    		}
+    		//echo print_r($arryRes,true);
+    		return new $class($arryRes);
+    	}
+    	*/
+    	return $this->select($sql);
+    }
 
     function select($query, $class='recordset')
     {
@@ -148,12 +176,11 @@ class Connection
             return false;
         }
 
-        if ($class == '' || !class_exists($class)) {
+        if ($class == '' || !class_exists($class, true)) {
             $class = 'recordset';
         }
         $this->debug($query);
         $cur = mysql_unbuffered_query($query, $this->con_id);
-
         if ($cur) {
             // Insertion dans le reccordset
             $i = 0;
@@ -225,12 +252,12 @@ class Connection
 
     function escapeStr($str)
     {
-        return mysql_escape_string($str);
+        return mysql_real_escape_string($str);
     }
 
     function esc($str)
     {
-        return mysql_escape_string($str);
+        return mysql_real_escape_string($str);
     }
 }
 ?>

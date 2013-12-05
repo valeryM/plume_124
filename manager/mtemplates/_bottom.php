@@ -28,6 +28,8 @@ reset($m->user->webs);
 foreach ($m->user->webs as $site => $score) {
     $arry_sites[$m->user->wdata[$site]['website_name']] = $site;    
 }
+
+
 ?>
 <div id='switch'>
 <form action='index.php' method='post' id='formSwitch'>
@@ -48,9 +50,13 @@ foreach ($m->user->webs as $site => $score) {
 </div>
 <?php endif;?>
  
- 
+
 </div>
 </div>
+<?php 
+if ($px_title !=  __('Files and images')) 
+	echo PathSelector::getScriptloader();
+?>
 <div id="footer">
 <a href="http://www.plume-cms.net/"><img
 src="themes/<?php echo $_px_theme; ?>/images/plume-cms-powered.png" alt="PLUME CMS" /></a></div>

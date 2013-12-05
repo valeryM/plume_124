@@ -23,10 +23,10 @@ if ($cache->processPage(180)):
 		
 		<h1 id="top"><a href="<?php pxInfo('url'); ?>" accesskey="1"><?php pxInfo('name'); ?></a></h1>
 		<p class="description"><?php pxInfo('description'); ?></p>
-	</div><!-- end banner -->
-	
+	</div><!-- end banner -->		
 
 <div id="main">
+
 <div id="mainfloat">
 
 	<div id="content">
@@ -43,8 +43,6 @@ if ($cache->processPage(180)):
 
 		<hr class="invisible" />
 	</div><!-- end content -->
-
-
 
 	<div id="menuleft">
 		<div class="col-content">
@@ -68,16 +66,13 @@ if ($cache->processPage(180)):
 
 </div><!-- end mainfloat -->
 
-
-
 	<div id="menuright">
 		<div class="col-content">
 			<?php include(dirname(__FILE__).'/inc/recent-news.php'); ?>
+			<?php include(dirname(__FILE__).'/inc/recent-events.php'); ?>
 			<?php include(dirname(__FILE__).'/inc/rss-sitemap.php'); ?>
 		</div><!-- col-content -->
 	</div><!-- end menuright -->
-
-
 
 </div><!-- end main -->
 

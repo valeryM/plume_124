@@ -30,7 +30,7 @@ class Sitemap
      * @param string Server query string
      * @return int Success code
      */
-    function action($query)
+    public static function action($query)
     {
         Hook::register('onInitTemplate', 'Sitemap', 'hookOnInitTemplate');
         $l10n = new l10n(config::f('lang'));
@@ -72,7 +72,7 @@ class Sitemap
      * @param array Default parameters (not used)
      * @return bool Success
      */
-    function hookOnInitTemplate($param)
+    public static function hookOnInitTemplate($param)
     {
         if (config::f('action') == 'Sitemap') {
             $GLOBALS['_PX_render']['website'] = FrontEnd::getWebsite();
@@ -86,7 +86,7 @@ class Sitemap
      * @param string Query string
      * @return string Category path
      */
-    function parseQueryString($query)
+    public static function parseQueryString($query)
     {
 		$category = '';
         if (preg_match('#^/sitemap.php(.*/)$#i', $query, $match)) {
@@ -97,5 +97,6 @@ class Sitemap
         return $category;
     }
 
+    
 }
 ?>

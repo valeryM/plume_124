@@ -44,7 +44,9 @@ class User extends RecordSet
     var $wdata   = array();
     var $website = ''; //current website
     var $lang    = ''; //current lang (can change with the website)
+	var $cats = null; // list of the category;
     var $con     = null;
+    var $path_media = '';
 
     /**
      * Constructor. 
@@ -105,7 +107,8 @@ class User extends RecordSet
             parent::recordset($rs->getData()); 
 
             if (false === $this->loadPrefs() ||
-                false === $this->loadWebsites()) {
+                false === $this->loadWebsites() ||
+				false === $this->loadCategories() ) {
                 return false;
             }
         } else {
@@ -240,7 +243,7 @@ class User extends RecordSet
      * @param string Password
      * @return bool The pair is valid or not
      */
-    function checkUser($user, $pswd)
+    public static function checkUser($user, $pswd)
     {
         if (0 == strlen($user) || 0 == strlen($pswd)) return false;
         $con =& pxDBConnect();
@@ -267,7 +270,7 @@ class User extends RecordSet
         $user = $this->f('user_id');
         $this->prefs = array();
         $this->con =& pxDBConnect();
-
+		
         if ((int)$user > 0) {
             $req = 'SELECT * FROM '.$this->con->pfx.'userprefs 
                   WHERE user_id LIKE \''.$this->con->escapeStr($user).'\'';
@@ -281,6 +284,16 @@ class User extends RecordSet
                 $this->setError('MySQL: ' . $this->con->error(), 500);
                 return false;
             }
+            $this->prefs['xmedia_current_dir'][$this->website] = '';
+            $req = 'SELECT user_id,user_path_media FROM '.$this->con->pfx.'users WHERE user_id = \''.$this->con->escapeStr($user).'\'';
+            //echo $req;
+            if (($rs = $this->con->select($req)) !== false)  {
+            	if (!$rs->EOF()) {
+            		$this->prefs['xmedia_current_dir'][$this->website] = $rs->f('user_path_media');
+            		$this->path_media = $rs->f('user_path_media');
+            	}
+            }
+            //echo $this->prefs['xmedia_current_dir'][$this->website];
         } else {
             return false;
         }
@@ -296,10 +309,12 @@ class User extends RecordSet
      */
     function getPref($key, $websiteid = '')
     {
-        if (strlen($key) == 0)
+        //echo $key .':' . $this->prefs[$key]['#all#'];
+    	if (strlen($key) == 0)
             return '';
         if (strlen($websiteid) == 0)
             $websiteid = $this->website;
+        //echo $key . '/'.$websiteid .' : ' . $this->prefs[$key][$websiteid];
         if (!empty($this->prefs[$key][$websiteid]))
             return $this->prefs[$key][$websiteid];
         if (!empty($this->prefs[$key]['#all#']))
@@ -307,6 +322,7 @@ class User extends RecordSet
         if (!empty($GLOBALS['_PX_config'][$key])) 
             return $GLOBALS['_PX_config'][$key];
         return '';
+        
     }
 
     /** 
@@ -322,9 +338,10 @@ class User extends RecordSet
         $this->webs = array();
         $this->wdata = array();
         $this->con =& pxDBConnect();
-
+		
         if ((int)$user > 0) {
             $req = SQL::getWebsiteLevels($user);
+
             if (($rs = $this->con->select($req)) !== false) {
                 while (!$rs->EOF()) {
                     $this->webs[$rs->f('website_id')]  = $rs->f('level');
@@ -334,6 +351,7 @@ class User extends RecordSet
                     $this->wdata[$rs->f('website_id')]['website_xmedia_path'] = $rs->f('website_xmedia_path');
                     $rs->moveNext();
                 }
+
             } else {
                 $this->setError('MySQL: ' . $this->con->error(), 500);
                 return false;
@@ -344,6 +362,35 @@ class User extends RecordSet
         return true;
     }
 
+	
+	function loadCategories()  
+	{
+		$user = $this->f('user_id');
+		$this->con =& pxDBConnect();
+		$req = SQL::getCategoryForUser($user);
+		if ( ($cats=$this->con->select($req) ) !== false ) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	function loadArrayCategoriesFromId($id)  
+	{
+		$this->con =& pxDBConnect();
+		$req = SQL::getCategoryForUser($id);
+		if ( ($rs=$this->con->select($req) ) !== false ) {
+			$array_cats= array();
+			while (!$rs->EOF())  {
+				$array_cats[$rs->f('category_id')]= $rs->f('category_name') . ' (' . $rs->f('category_path') .')';
+				$rs->moveNext();
+			}
+			return $array_cats;
+		} else {
+			return false;
+		}
+	}
+	
     /**
      * Set the current website.
      * It loads the lang preference of the website and try to set the

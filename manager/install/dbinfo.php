@@ -110,7 +110,7 @@ echo '<p>'.__('The content of the website is saved into a MySQL database. Please
 
 <p class="field"><label for="dbprefix"><strong><?php  echo __('Prefix for the tables in the database:'); ?></strong></label>
 <?php echo php_f_textField('dbprefix', 30, 255, $px_dbprefix); ?><br />
-<span class="small"><?php echo __('Change it only if you have several installations of PLUME CMS with the same database.'); ?></small>
+<span class="small"><?php echo __('Change it only if you have several installations of PLUME CMS with the same database.'); ?>
 </p>
 <p><?php echo __('In the next step the database will be initialized with the necessary tables for PLUME CMS.'); ?></p>
 <p>

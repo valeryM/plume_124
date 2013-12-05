@@ -69,7 +69,7 @@ class menu
      * @param bool Show the item (true)
      * @param string Accesskey for the item ('')
      */
-    function addItem($title, $url, $img, $active, $show=true, $accesskey='')
+    function addItem($title, $url, $img='', $active=false, $show=true, $accesskey='')
     {
         if($show) {
             if (is_array($url)) {
@@ -88,8 +88,36 @@ class menu
                 }
                 $ahtml = ' accesskey="'.$accesskey.'"';
             }
-            $this->items[] =
-            '<li'.(($active) ? ' class="active"' : ' class=""').'>'.'<a href="'.$link.'"'.$ahtml.'>'.(($img) ? '<img src="'.$img.'" style="text-decoration: none;" alt="identification icon" /></a>'.$this->imgSpace.'<a href="'.$link.'"'.$ahtml.'>' : '').$title.'</a></li>'."\n";
+            if ($link!='') {
+           		$item = '<li'.(($active) ? ' class="active"' : ' class=""').'>';
+            	$item .= '<a href="'.$link.'"'.$ahtml.'>';
+            } else {
+            	$item = '<span  '.(($active) ? ' class="active"' : ' class="" ').' style="padding:5px;float:left;display:inline-block;">';
+            }
+            if ($img!='') 
+            	$item .= '<img src="'.$img.'" style="text-decoration: none;" alt="identification icon" />';
+            if ($link != '') $item .= '</a>';
+            $item .= $this->imgSpace;
+            if ($link != '') 
+            	$item .= '<a href="'.$link.'"'.$ahtml.'>';
+            $item .= $title;
+            if ($link != '') $item .= '</a>';
+                      
+            if ($link!='') 
+            	$item .= '</li>'."\n";
+           	else 
+           		$item .= '</span>'."\n";
+            $this->items[] = $item;
+            /*
+            $this->items[] = '<li'.(($active) ? ' class="active"' : ' class=""').'>'.
+            		'<a href="'.$link.'"'.$ahtml.'>'.
+            		(($img!='') ? 
+            				'<img src="'.$img.'" style="text-decoration: none;" alt="identification icon" /></a>'.$this->imgSpace.'<a href="'.$link.'"'.$ahtml.'>' 
+            				: ''
+            				).
+            		$title.'</a></li>'."\n";
+            */
+            
         }
     }
 
@@ -100,7 +128,8 @@ class menu
      */
     function draw()
     {
-        $res = '<ul id="'.$this->id.'">'."\n";
+    	$classMenu = ($this->id == 'menu') ? 'menuTop' : 'menuBottom';
+        $res = '<ul id="'.$this->id.'" class="'.$classMenu.'">'."\n";
         $count = count($this->items);
         if ($count > 0) {
             for ($i=0; $i<$count; $i++) {
@@ -122,8 +151,16 @@ class menu
         } else {
             $res .= '<li>&nbsp;</li>';
         }
-        
         $res .= '</ul>'."\n";
+        // script to accept click not only on the link <a>
+        $res .= '<script type="text/javascript" >'."\n";
+        $res .= '$(document).ready(function() {'."\n";
+        $res .= '    $(".'.$classMenu.' li").click(function() {'."\n";
+        $res .= '        window.location=$(this).children("a").attr("href");'."\n";
+        $res .= '     });'."\n";
+        $res .= '});'."\n";
+        $res .= '</script>'."\n"; 
+               
         $res = preg_replace('|class=""|', '', $res);
         
         return $res;

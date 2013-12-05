@@ -1,6 +1,6 @@
 <?php 
 if ($cache->processPage(180)):
-    pxTemplateInit(); 
+    pxTemplateInit('remove_numbers'); 
 ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -26,7 +26,6 @@ if ($cache->processPage(180)):
 		<h1 id="top"><a href="<?php pxInfo('url'); ?>"><?php pxInfo('name'); ?></a></h1>
 		<p class="description"><?php pxInfo('description'); ?></p>
 	</div><!-- end banner -->
-
 
 <div id="main">
 

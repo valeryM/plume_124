@@ -29,7 +29,6 @@ if ($cache->processPage(180)):
 <div id="main">
 <?php pxSingleCatTree('<ol class="tree">%s</ol>'); ?>
 
-
 <div id="mainfloat">
 	<div id="content">
 	

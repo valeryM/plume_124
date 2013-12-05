@@ -50,7 +50,7 @@ class auth
      * @return void
      * @param  int Level of rights (PX_AUTH_NORMAL)
      */
-    function checkAuth($level=PX_AUTH_NORMAL)
+    public static function checkAuth($level=PX_AUTH_NORMAL)
     {
         if (isset($_GET['wid'])) {
             $website = $_GET['wid'];
@@ -83,7 +83,7 @@ class auth
      *
      * @return bool success
      */
-    function getFromCookie()
+    public static function getFromCookie()
     {
         if (!isset($_COOKIE['px_session'])) {
             return false;
@@ -106,7 +106,7 @@ class auth
     /**
      * Logout a user
      */
-    function logout()
+    public static function logout()
     {
         setcookie('px_session', '', time()-3600, '/');
         $_SESSION = array();
@@ -124,15 +124,15 @@ class auth
      * @param object User ('') if none given, the current session user is tested
      * @return bool Success
      */
-    function asLevel($level=PX_AUTH_NORMAL, $website=false, $user='')
+    public static function asLevel($level=PX_AUTH_NORMAL, $website=false, $user='')
     {
         if (false === $website) {
             $website = (!empty($_SESSION['website_id'])) ? $_SESSION['website_id'] : 'default';
         }
         if (empty($user)) {
-            if ($level == PX_AUTH_ROOT)
+            if ($level == PX_AUTH_ROOT)  {
                 return ($_SESSION['user_id'] == 1);
-
+            }
             if (!isset( $_SESSION['webs'][$website])) return false;
             return  ($_SESSION['webs'][$website] >= $level);
 
@@ -141,8 +141,9 @@ class auth
             if ($user->f('user_id') > 0) {
                 $user->loadWebsites();
             }
-            if ($level == PX_AUTH_ROOT)
+            if ($level == PX_AUTH_ROOT)  {
                 return ($user->f('user_id') == 1);
+            }
             if (!isset( $user->webs[$website])) return false;
             return  ($user->webs[$website] >= $level);
 
@@ -153,7 +154,7 @@ class auth
      * Send a "Location:" header to redirect the user
      * to the login page. Abort the script execution.
      */
-    function goToLoginPage()
+    public static function goToLoginPage()
     {
         header('Location: '.www::getCurrentFullUrl().'login.php');
         exit;
@@ -184,13 +185,13 @@ class auth
      * @param string Website id ('')
      * @param bool Password check (true)
      */
-    function login($user, $pswd, $website='', $checkpass=true)
+    public static function login($user, $pswd, $website='', $checkpass=true)
     {
         if (0 == strlen($user) || 0 == strlen($pswd)) return false;
         if (preg_match('/[^A-Za-z0-9]/', $user)) return false;
         $ok = false;
 	
-        if ($checkpass == false or User::checkUser($user, $pswd)) {
+        if ($checkpass == false || User::checkUser($user, $pswd)) {
             $u = new User($user); //load user
             if (!is_array($u->webs)) {
                 // no authorized web

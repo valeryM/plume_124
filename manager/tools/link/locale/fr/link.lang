@@ -15,6 +15,15 @@ Vous devez indiquer au moins un intitulé et une URL
 ;You must provide a valid URL
 Vous devez fournir une URL valide
 
+;You must provide a valid area
+Vous devez fournir une zone valide
+
+;You must provide a valid area and a label
+Vous devez fournir une zone et un intitulé 
+
+;All values
+Toutes
+
 ;Back
 Retour
 
@@ -50,6 +59,12 @@ Enregistrer
 
 ;save order
 Enregistrer l'ordre
+
+;Area name
+Zone d'affichage
+
+;Category name
+Nom de la catégorie
 
 ;XFN
 XFN

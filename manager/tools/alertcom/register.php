@@ -34,8 +34,9 @@ class Alertcom
      * $p['ct'] contains the comment. 
      *
      */
-function onNewComment($name, $p)
+	public static function onNewComment($name, $p)
    {
+   		$p=$p[0];
       if ($GLOBALS['_PX_config']['comment_notification_status'] != 0) {      
       	//Defining the link to go to the comments page in Manager
       	$website_domain = $GLOBALS['_PX_website_config']['domain'];
@@ -108,8 +109,26 @@ function onNewComment($name, $p)
       	           mail($email_for_sending, $subject , $message, $headers);
 	}
     }
-  }
+  } // End Method  onNewComment()
+  
+	/**
+	 * 
+	 * @param $art
+	 * @param $m
+	 * @return unknown_type
+	 */
+	public static function onArticleSave($name,$p)  {
+		$p=$p[0];
+        	// Send a mail to notify what's adding
+        if (PX_CONFIG_MAIL_ON_CREATE == true) 
+        	$m->sendEmail('Ajout d\'un article', 'article='.$art->f('resource_id'), $art->f('website_id'),PX_CONFIG_MAIL_LEVEL);
+        $m->error('tentive d\'envoi d\'un mail',1);
+		
+	}
+  
+  
 }
 
-Hook::register('onNewPublicCommentAfterSave', 'Alertcom', 'onNewComment'); 
+Hook::register('onNewPublicCommentAfterSave', 'Alertcom', 'onNewComment');
+Hook::register('onArticleSave', 'Alertcom', 'onArticleSave');  
 ?>

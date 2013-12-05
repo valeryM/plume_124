@@ -38,7 +38,7 @@ class config
      * @param string Plugin to get the variable from ('plume')
      * @return mixed Return an empty string if variable not set.
      */
-    function f($var, $plugin='plume')
+    public static function f($var, $plugin='plume')
     {
         if ($plugin != 'plume') {
             // Get the variable from a plugin
@@ -63,7 +63,7 @@ class config
      * @param string Plugin to get the variable from ('plume')
      * @return bool False if not set
      */
-    function fbool($var, $plugin='plume')
+    public static function fbool($var, $plugin='plume')
     {
         return (config::f($var, $plugin)) ? true : false;
     }
@@ -75,7 +75,7 @@ class config
      * @param string Plugin to get the variable from ('plume')
      * @return int 0 if not set
      */
-    function fint($var, $plugin='plume')
+    public static function fint($var, $plugin='plume')
     {
         return (int) config::f($var, $plugin);
     }
@@ -85,9 +85,9 @@ class config
      *
      * @return string Cache dir of the current website.
      */
-    function getCacheDir()
+    public static function getCacheDir()
     {
-        return dirname(__FILE__).'/../cache/'.config::f('website_id').'/';
+        return dirname(dirname(__FILE__)).'/cache/'.config::f('website_id').'/';
     }
 
     /**
@@ -95,7 +95,7 @@ class config
      *
      * @return string Path to the mass update file of the current website.
      */
-    function getMassUpdateFile()
+    public static function getMassUpdateFile()
     {
         return config::getCacheDir().'MASS_UPDATE';
     }
@@ -108,7 +108,7 @@ class config
      * @param string Website id
      * @retrun bool Success or not
      */
-    function loadWebsite($websiteid)
+    public static function loadWebsite($websiteid)
     {
         global $_PX_website_config;
         $success = true;
@@ -132,7 +132,7 @@ class config
      * @param string Plugin id
      * @return bool Success or not
      */
-    function loadPlugin($pluginid)
+    public static function loadPlugin($pluginid)
     {
         global $_PX_config_plugins;
         $success = true;
@@ -158,7 +158,7 @@ class config
      * @param mixed Value
      * @return bool true
      */
-    function setVar($var, $value)
+    public static function setVar($var, $value)
     {
         if (empty($GLOBALS['_PX_config_runtime'])) {
             $GLOBALS['_PX_config_runtime'] = array();
@@ -174,7 +174,7 @@ class config
      * @param mixed Value
      * @return bool true
      */
-    function setField($var, $value)
+    public static function setField($var, $value)
     {
         return config::setVar($var, $value);
     }
@@ -193,7 +193,7 @@ class config
      * @param string Context ('manager')
      * @return bool true
      */
-    function setContext($c='manager')
+    public static function setContext($c='manager')
     {
         $GLOBALS['_PX_config']['context'] = $c;
         return true;

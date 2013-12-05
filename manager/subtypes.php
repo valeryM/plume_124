@@ -23,7 +23,6 @@
 
 require_once 'path.php';
 require_once $_PX_config['manager_path'].'/prepend.php';
-
 auth::checkAuth(PX_AUTH_ADMIN);
 
 /*=================================================
@@ -127,15 +126,21 @@ if (!empty($_REQUEST['s_id']) or !empty($_REQUEST['op'])):
 ?>
 
 <form action="subtypes.php" method="post" id="formPost" class="subtypes_style">
-  <p class="field"><label class="float" for="s_type_id" style="display:inline"><strong><?php  echo __('Type of:'); ?></strong></label>
-  <?php echo form::combobox('s_type_id',   array(  __('Article') => 'articles',   __('News') => 'news'), $px_type_id,'','', '',"onChange=\"openCloseBlockIf('p_extra1','s_type_id','news',1,-1);\""); ?></span>
+  <p class="field"><span><label class="float" for="s_type_id" style="display:inline"><strong><?php  echo __('Type of:'); ?></strong></label>
+  	<?php echo form::combobox('s_type_id', 
+  			array(  __('Article') => 'articles',   __('News') => 'news', __('Event') => 'events', __('Rsslink') => 'rsslinks'), 
+  			$px_type_id,
+  			'','', '',
+  			"onChange=\"openCloseBlockIfArray('p_extra1','s_type_id',['news'],1,-1);\""
+  		); ?>
+  		</span>
   </p>
 
   <p class="field"><label class="float" for="s_name" style="display:inline"><strong><?php  echo __('Name of the type:'); ?></strong></label>
   <?php echo form::textField('s_name', 30, 30, $px_name, '', ''); ?> 
   </p>
   
-  <p class="field"><label class="float" for="s_template" style="display:inline"><strong><?php  echo __('Template:'); ?></strong></label>
+  <p class="field"><span><label class="float" for="s_template" style="display:inline"><strong><?php  echo __('Template:'); ?></strong></label>
   <?php echo form::combobox('s_template', $arry_templates, $px_template); ?></span>
   </p>
 
@@ -145,9 +150,11 @@ if (!empty($_REQUEST['s_id']) or !empty($_REQUEST['op'])):
   
   <?php $p_extra1_style = ($px_type_id == 'news') ? '' : ' style="display: none"'; ?>
   
-  <p class="field" id="p_extra1"<?php echo $p_extra1_style; ?>><label class="float" for="s_extra1" style="display:inline"><strong><?php  echo __('Have associated link to news items:'); ?></strong></label>
+  <p class="field" id="p_extra1"<?php echo $p_extra1_style; ?>><span><label class="float" for="s_extra1" style="display:inline"><strong><?php  echo __('Have associated link to news items:'); ?></strong></label>
   <?php echo form::combobox('s_extra1', array(  __('Yes') => '1',  __('No') => '0'), $px_extra1); ?></span>
   </p>
+
+  <p><?php echo __('Id to use in the templates:').' <strong>'.$px_id.'</strong>'; ?></p>
 
   <?php
   if (!empty($px_id)) {
@@ -182,7 +189,7 @@ $px_articles_title = '<h2>'. __('Type of articles').'</h2>'."\n";
 $current = ''; //$px_subtypes->f('type_id');
 
 if ($px_subtypes->nbRow() == 0) {
-	echo '<p>'.sprintf( __('You need to <a href="%s">add 2 types of resource</a>, one for the articles and one for the news.'), 'subtypes.php?op=add').'</p>';
+	echo '<p>'.sprintf( __('You need to <a href="%s">add 4 types of resource</a>, one for the articles, one for the news, one for the events and on for the rss links.'), 'subtypes.php?op=add').'</p>';
 }
     
 while (!$px_subtypes->EOF()) {
@@ -191,14 +198,18 @@ while (!$px_subtypes->EOF()) {
             echo "</ul>\n";
         }
         $current = $px_subtypes->f('type_id');
+        $subTitle = '<h2>'. __('Types of '.$px_subtypes->f('type_id')).'</h2>'."\n";
+        echo $subTitle;
+        /*
         if ($current == 'articles') {
             echo $px_articles_title;
         } else {    
             echo $px_news_title;
-        }    
+        }
+        */    
         echo "<ul class='subtypes_style'>\n";
     }
-    echo '<li><a href="subtypes.php?s_id='.$px_subtypes->f('subtype_id').'">'.$px_subtypes->f('subtype_name').'</a></li>'."\n";
+    echo '<li><a href="subtypes.php?s_id='.$px_subtypes->f('subtype_id').'">'.$px_subtypes->f('subtype_name').'</a> ['.__('Id to use in the templates:').' <strong>'.$px_subtypes->f('subtype_id').'</strong> ] </li>'."\n";
     
     $px_subtypes->moveNext();
 }

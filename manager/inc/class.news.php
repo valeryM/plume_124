@@ -91,11 +91,11 @@ class News extends Resource
      * @param string Format of the string (html, wiki, text)
      * @return string The content of the news as a string
      */
-    function getAsString($format='html')
+    function getAsString($format='Html')
     {
         $string = str_repeat($this->f('title').' ', 5);
         $string .= ' '.str_repeat($this->f('subject').' ', 3);
-        $string .= ' '.$this->getFormattedContent('description');
+        $string .= ' '.$this->getFormattedContent('description','Text');
         $string .= ' '.$this->details->f('news_titlewebsite');
         $string .= ' '.$this->details->f('news_linkwebsite');
         return $string;
@@ -139,8 +139,8 @@ class News extends Resource
      * @param int Comment support
      * @param int Subtype of the news
      */
-    function set($title, $subject, $content, $format, $status, $datestart,
-                 $dateend, $useenddate, $comment_support, $subtype)
+    function set($title, $subject, $content, $format, $status, $path,
+    		 $datestart, $dateend, $useenddate, $comment_support, $subtype)
     {
         //Test in a row the field to return errors for all 
         //the litigious data, not only the first one.
@@ -156,7 +156,9 @@ class News extends Resource
         }
         if (empty($subtype)) {
             $this->setError(__('A type of resource is needed.'), 400); 
-        }          
+        }
+        //if ($filRouge == '') $filRouge =0;
+                  
         $this->setField('subtype_id', $subtype);
         $this->setField('subject', $subject);
         $this->setField('title', $title);
@@ -165,7 +167,8 @@ class News extends Resource
         $this->setField('enddate', $dateend);
         $this->setField('comment_support', (int) $comment_support);
         $this->setField('status', $status);
-
+        $this->setField('path', $path);
+		//$this->setField('filRouge', $filRouge);
         $this->isModified = true;
         if (false !== ($error = $this->error())) {
             return false;
@@ -180,13 +183,15 @@ class News extends Resource
      * @param string Associated website URL
      * @return bool Success
      */
-    function setDetails($title, $link)
+    function setDetails($title, $link, $shortcontent, $content, $format)
     {
         if (!empty($title)) {
             if (!preg_match('#^(http|ftp|news|https)://#i', $link)) {
                 $this->setError(__('The associated link must start with http:// or a valid protocol.'), 400);
             }
         }   
+        $this->details->setField('news_shortcontent', '='.$format."\n".trim($shortcontent));
+        $this->details->setField('news_content', '='.$format."\n".trim($content));
         $this->details->setField('news_titlewebsite', trim($title));
         $this->details->setField('news_linkwebsite', trim($link));
         $this->isModified = true;
@@ -265,7 +270,7 @@ class News extends Resource
      * @param string Server query string
      * @return int Success code
      */
-    function action($query)
+    public static function action($query)
     {
         Hook::register('onInitTemplate', 'News', 'hookOnInitTemplate');
         $l10n = new l10n(config::f('lang'));
@@ -292,14 +297,16 @@ class News extends Resource
                                            config::f('website_id'));
         $con =& pxDBConnect();
         if (($news = $con->select($sql, 'News')) !== false) {
-            if (!$news->isEmpty()) {
+            if (!$news->isEmpty() && $news->f('type_id')=='news') {
                 $news->load();
             } else {
+            	config::setVar('query_string_origin', Search::parseQueryString($query));
                 return 404;
             }
         } else {
             $GLOBALS['_PX_render']['error']->setError('MySQL: '
                                                       .$con->error(), 500);
+            config::setVar('query_string_origin', Search::parseQueryString($query));
             return 404;
         }
 
@@ -324,10 +331,19 @@ class News extends Resource
      * @param array Default parameters (not used)
      * @return bool Success
      */
-    function hookOnInitTemplate($hook, $param)
+    public static function hookOnInitTemplate($hook, $param)
     {
         if (config::f('action') == 'News') {
             $GLOBALS['_PX_render']['cat'] = FrontEnd::getCategory($GLOBALS['_PX_render']['news']->f('category_id'));;
+            
+            $arrayPath = explode('/',$GLOBALS['_PX_render']['cat']->f('category_path'));
+            // récupère la 1ère catégorie
+            if (count($arrayPath)>0)
+            	$GLOBALS['_PX_render']['mcat'] = FrontEnd::getCategory('/'.$arrayPath[1].'/');
+            if (count($arrayPath)>3)
+            	$GLOBALS['_PX_render']['mchildcat'] = FrontEnd::getCategory('/'.$arrayPath[1].'/'.$arrayPath[2].'/');
+            else
+            	$GLOBALS['_PX_render']['mchildcat'] = false;            
             $GLOBALS['_PX_render']['website'] = FrontEnd::getWebsite();
             if (config::f('order_res_manual')) {
                 $order = 'ORDER BY %sresources.title ASC';
@@ -352,10 +368,11 @@ class News extends Resource
      * @param string Query string
      * @return array (news id, category path)
      */
-    function parseQueryString($query)
+    public static function parseQueryString($query)
     {
 		$category = '';
         $id = '';
+
 		if (preg_match('#^(.*/)(\d+)\-([^\.]*)$#i', $query, $match)) {
 			$category = $match[1];
 			$id = (int) $match[2];
@@ -391,13 +408,16 @@ class News extends Resource
                 comment_support  = \''.$this->con->esc($this->f('comment_support')).'\',
                 subtype_id      = \''.$this->con->esc($this->f('subtype_id')).'\',
                 title           = \''.$this->con->esc($this->f('title')).'\',
+                path =  \''.$this->con->esc($this->f('resource_id'))
+                			.'-'.$this->con->esc(text::str2url($this->f('title'))).'\',
                 description     = \''.$this->con->esc($this->f('description')).'\',
                 publicationdate = \''.$this->con->esc($this->f('publicationdate')).'\',
                 modifdate       = \''.date::stamp().'\',
                 enddate         = \''.$this->con->esc($this->f('enddate')).'\',
-                status          = \''.$this->con->esc($this->f('status')).'\'
+                status          = \''.$this->con->esc($this->f('status')).'\' 
+                
                 WHERE resource_id = \''.$this->con->esc($this->f('resource_id')).'\'';
-
+				//,filRouge		= \''.$this->con->esc($this->f('filRouge')).'\' 
         } else {
             $req = 'INSERT INTO '.$this->con->pfx.'resources SET
                 website_id      = \''.$this->con->esc($this->f('website_id')).'\',
@@ -426,9 +446,9 @@ class News extends Resource
                 format          = \'text/html\',
                 dctype          = \'Text\',
                 dccoverage      = \'\',
-                rights          = \'\'';
+                rights          = \'\' ';
+                //filRouge	    = \''.$this->con->esc($this->f('filRouge')).'\' ';
         }
-   
         if (!$this->con->execute($req)) {
             $this->setError('MySQL: '.$this->con->error(), 500);
             return false;
@@ -490,12 +510,16 @@ class News extends Resource
         if ($update) {
             $req = 'UPDATE '.$this->con->pfx.'news SET
                 news_serial = \''.$this->con->esc(md5($this->f('title'))).'\',
+            	news_shortcontent = \''.$this->con->esc($this->details->f('news_shortcontent')).'\',
+            	news_content = \''.$this->con->esc($this->details->f('news_content')).'\',
                 news_titlewebsite = \''.$this->con->esc($this->details->f('news_titlewebsite')).'\',
                 news_linkwebsite = \''.$this->con->esc($this->details->f('news_linkwebsite')).'\'
                 WHERE resource_id = \''.$this->con->esc($this->f('resource_id')).'\'';
         } else {
             $req = 'INSERT INTO '.$this->con->pfx.'news SET
                 news_serial = \''.$this->con->esc(md5($this->f('title'))).'\',
+           		news_shortcontent = \''.$this->con->esc($this->details->f('news_shortcontent')).'\',
+            	news_content = \''.$this->con->esc($this->details->f('news_content')).'\',
                 news_titlewebsite = \''.$this->con->esc($this->details->f('news_titlewebsite')).'\',
                 news_linkwebsite = \''.$this->con->esc($this->details->f('news_linkwebsite')).'\',
                 resource_id = \''.$this->con->esc($this->f('resource_id')).'\'';

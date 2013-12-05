@@ -31,7 +31,7 @@ class RSS
      * @param string Server query string
      * @return int Success code
      */
-    function action($query)
+    public static function action($query)
     {
         Hook::register('onInitTemplate', 'RSS', 'hookOnInitTemplate');
         $l10n = new l10n(config::f('lang'));
@@ -41,6 +41,7 @@ class RSS
         $path = RSS::parseQueryString($query);
         if ($path != '/') {
             $sql = SQL::getCategoryByPath($path, config::f('website_id'));
+            //echo $sql;
             $con =& pxDBConnect();
             if (($cat = $con->select($sql, 'Category')) !== false) {
                 if (!$cat->isEmpty()) {
@@ -57,12 +58,13 @@ class RSS
         $cache->setCacheDirectory(config::getCacheDir());
         $cache->debug = config::f('debug');
 
-        header(FrontEnd::getHeader('feed.atom'));
+        header(FrontEnd::getHeader('feed.atom.php'));
         //header('Content-Disposition: attachment; filename="feed.xml"');
         // Load the template
 		include config::f('manager_path').'/templates/'
-            .config::f('theme_id').'/feed.atom';
+            .config::f('theme_id').'/feed.atom.php';
         return 200;
+        
     }
 
     /**
@@ -71,7 +73,7 @@ class RSS
      * @param array Default parameters (not used)
      * @return bool Success
      */
-    function hookOnInitTemplate($param)
+    public static function hookOnInitTemplate($param)
     {
         if (config::f('action') == 'RSS') {
             $GLOBALS['_PX_render']['website'] = FrontEnd::getWebsite();
@@ -85,7 +87,7 @@ class RSS
      * @param string Query string
      * @return string Category path
      */
-    function parseQueryString($query)
+    public static function parseQueryString($query)
     {
 		$category = '';
         if (preg_match('#^/feed(.*/)$#i', $query, $match)) {

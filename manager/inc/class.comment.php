@@ -93,7 +93,7 @@ class Comment extends RecordSet
      * @return bool Success
      */
     function set($author, $email, $website, $content, $resource_id, $ip,
-                 $status=PX_RESOURCE_STATUS_VALIDE,
+                 $status=PX_RESOURCE_STATUS_VALIDE, $path='',
                  $type=PX_COMMENT_TYPE_NORMAL, $user_id='')
     {
         $this->setField('comment_author', $author);
@@ -127,8 +127,10 @@ class Comment extends RecordSet
         if (false == Validate::checkEmail($this->f('comment_email'))) {
             $this->setError(__('You need to provide a valid email address.'), 400); 
         }
+        $pattern = '/^http:\/\//';
         if (strlen($this->f('comment_website')) > 0 &&
-            !eregi('^http:\/\/', $this->f('comment_website'))) {
+            !preg_match($pattern, $this->f('comment_website'))) {
+        //if (strlen($this->f('comment_website')) > 0 && !eregi('^http:\/\/', $this->f('comment_website'))) {
             $this->setError(__('The website address must start with http://.'), 400); 
         }
         if (strlen($this->f('comment_content')) == 0) {
@@ -190,7 +192,7 @@ class Comment extends RecordSet
      * @param string Server query string
      * @return int Success code
      */
-    function action($query)
+    public static function action($query)
     {
         Hook::register('onInitTemplate', 'Comment', 'hookOnInitTemplate');
         $l10n = new l10n(config::f('lang'));
@@ -208,6 +210,7 @@ class Comment extends RecordSet
         // Parse query string to find the matching resource
         $id = Comment::parseQueryString($query);
         if ($id == 0) {
+        	config::setVar('query_string_origin', Search::parseQueryString($query));
             return 404;
         }
         // Find if the resource exists
@@ -215,11 +218,13 @@ class Comment extends RecordSet
         $sql = SQL::getResourceByIdentifier($id, '', config::f('website_id'));
         if (($res = $con->select($sql, 'ResourceSet')) !== false) {
             if ($res->isEmpty()) {
+            	config::setVar('query_string_origin', Search::parseQueryString($query));
                 return 404;
             }
         } else {
             $GLOBALS['_PX_render']['error']->setError('MySQL: '
                                                       .$con->error(), 500);
+            config::setVar('query_string_origin', Search::parseQueryString($query));
             return 404;
         }
         // Load the matching comments if GET, add a comment if POST
@@ -238,6 +243,7 @@ class Comment extends RecordSet
             $ct->set($author, $email, $website, $content, $id, 
                      $_SERVER["REMOTE_ADDR"], 
                      config::f('comment_default_status'));
+            		
             if (strlen($redirect) > 5) {
                 $GLOBALS['_PX_redirect'] = $redirect;
                 $GLOBALS['_PX_render']['ct_redirect'] = $redirect;
@@ -279,7 +285,7 @@ class Comment extends RecordSet
      * @param array Default parameters (not used)
      * @return bool Success
      */
-    function hookOnInitTemplate($hook, $param)
+    public static function hookOnInitTemplate($hook, $param)
     {
         if (config::f('action') == 'Comment') {
             $GLOBALS['_PX_render']['website'] = FrontEnd::getWebsite();
@@ -293,7 +299,7 @@ class Comment extends RecordSet
      * @param string Query string
      * @return int Resource id
      */
-    function parseQueryString($query)
+    public static function parseQueryString($query)
     {
         $id = 0;
         if (preg_match('#^/comments/(\d+)/*$#i', $query, $match)) {

@@ -30,13 +30,16 @@ require_once dirname(__FILE__).'/lib.path.php';
 class text 
 {
 
+	public static function addDelimiter(&$item, $key) {
+		$item = '\''.$item.'\'';
+	}
     /** 
      * Return type of text (wiki, html, etc.)
      *
      * @param string Text to get the type from
      * @return mixed Type or empty string if not found
      */
-    function getType($text='')
+    public static function getType($text='')
     {
         if (0 == strlen($text)) 
             return '';
@@ -55,7 +58,7 @@ class text
      * @return string Raw text
      */
 
-    function getRawContent($text='')
+    public static function getRawContent($text='')
     {
         if (0 == strlen($text)) 
             return '';
@@ -69,11 +72,11 @@ class text
      * Call the wiki parser depending of the content of the string
      *
      * @param string unparsed content
-     * @param string output format, ('html') or 'text'
+     * @param string output format, ('Html') or 'Text'
      * @return string parsed content
      *
      */
-    function parseContent($text='', $output='html')
+    public static function parseContent($text='', $output='Html')
     {
         if (0 == strlen($text)) return '';
         $output = 'To'.$output;
@@ -83,14 +86,25 @@ class text
             $text = substr($text, 5);
             $format  = trim($match[1]);
         }
+        /*
+        $log = date::stamp().' - lib.text::parseContent()'.chr(10);
+        $log .= $text . chr(10);
+        file_put(SEARCH_LOG, $log);
+        */
         if (is_callable(array('text','parse'.$format.$output))) {
             $parsefunc = 'parse'.$format.$output;
         } else {
             $parsefunc = 'parseWikiToHtml';
         }
+        //echo $parsefunc;
         $content = call_user_func(array('text', $parsefunc), $text);
         Hook::run('onParseContent', array('text' => &$content, 
                                           'output' => &$output));
+        /*
+        $log = date::stamp().' - lib.text::parseContent() return'. chr(10);
+        $log .= $content.chr(10);
+        file_put(SEARCH_LOG, $log);
+        */
         return $content;
         
     }
@@ -101,7 +115,7 @@ class text
      * @param string Wiki formatted text
      * @return string XHTML
      */
-    function parseWikiToHtml($text)
+    public static function parseWikiToHtml($text)
     {
         include_once dirname(__FILE__).'/../extinc/WikiRenderer.lib.php';
         include_once dirname(__FILE__).'/wikirenderer_xhtml.conf.php';
@@ -110,7 +124,7 @@ class text
         return $wkr->render($text);
     }
 
-    function parseWikiToText($text)
+    public static function parseWikiToText($text)
     {
         include_once dirname(__FILE__).'/../extinc/WikiRenderer.lib.php';
         include_once dirname(__FILE__).'/../extinc/WikiRenderer_w2text.conf.php';
@@ -119,7 +133,7 @@ class text
         return $wkr->render($text);
     }
 
-    function parseHtmlToHtml($text)
+    public static function parseHtmlToHtml($text)
     {
         while (preg_match('#<xlink\s+id="(.*)"\s+type="(.*)"\s*/>#i', $text, $match) 
                or
@@ -136,7 +150,7 @@ class text
         return $text;
     }
 
-    function parseHtmlToText($text)
+    public static function parseHtmlToText($text)
     {
         include_once dirname(__FILE__).'/../extinc/class.html2text.php';
         $h2t = new html2text($text);
@@ -150,7 +164,7 @@ class text
      * @param  string format of the link 'textlink', 'img' or 'icon'
      * @param  string title for the link
      */
-     function xlinkCreate($id, $type = 'textlink', $title = '')
+     public static function xlinkCreate($id, $type = 'textlink', $title = '')
     {
         include_once dirname(__FILE__).'/class.manager.php';
         $m = new Manager();
@@ -176,7 +190,7 @@ class text
     }
 
 
-    function xlinkCreateTextLink($res)
+    public static function xlinkCreateTextLink($res)
     {
         return '<a href="'.$res->getPath().'">'.$res->f('new-title').'</a>';
     }
@@ -188,7 +202,7 @@ class text
      * @param  string not encoded
      * @param  bool   is the string for outside a &lt;a ...&gt; link?
      */  
-    function hexEncode($str, $text=false)
+    public static function hexEncode($str, $text=false)
     {
         $encoded = '';
         if ($text) {
@@ -215,7 +229,7 @@ class text
      * @param  string String with entities
      * @return string String without entities
      */
-    function removeEntities($string)
+    public static function removeEntities($string)
     {
         return html_entity_decode($string, ENT_QUOTES, 'UTF-8');
         /*
@@ -223,24 +237,24 @@ class text
             $string = utf8_decode($string);
     
         // Table of codes  130 to 140 and 145 to 156
-        $tags = array('‚'=>'&sbquo;','ƒ'=>'&fnof;','„'=>'&bdquo;',
-                      '…'=>'&hellip;','†'=>'&dagger;', 
-                      '‡'=>'&Dagger;','ˆ'=>'&circ;','‰'=>'&permil;',
-                      'Š'=>'&Scaron;','‹'=>'&lsaquo;','Œ'=>'&OElig;',
-                      '‘'=>'&lsquo;','’'=>'&rsquo;','“'=>'&ldquo;',
-                      '”'=>'&rdquo;','•'=>'&bull;','–'=>'&ndash;',
-                      '—'=>'&mdash;','˜'=>'&tilde;','™'=>'&trade;',
-                      'š'=>'&scaron;','›'=>'&rsaquo;','œ'=>'&oelig;',
-                      'Ÿ'=>'&Yuml','€'=>'&euro;');
-        $vtags = array('‚'=>'&#8218;','ƒ'=>'&#402;','„'=>'&#8222;',
-                       '…'=>'&#8230;','†'=>'&#8224;','‡'=>'&#8225;',
-                       'ˆ'=>'&#710;','‰'=>'&#8240;','Š'=>'&#352;',
-                       '‹'=>'&#8249;','Œ'=>'&#338;','‘'=>'&#8216;',
-                       '’'=>'&#8217;','“'=>'&#8220;','”'=>'&#8221;',
-                       '•'=>'&#8226;','–'=>'&#8211;','—'=>'&#8212;',
-                       '˜'=>'&#732;','™'=>'&#8482;','š'=>'&#353;',
-                       '›'=>'&#8250;','œ'=>'&#339;','Ÿ'=>'&#376;',
-                       '€'=>'&#8364;');
+        $tags = array('ï¿½'=>'&sbquo;','ï¿½'=>'&fnof;','ï¿½'=>'&bdquo;',
+                      'ï¿½'=>'&hellip;','ï¿½'=>'&dagger;', 
+                      'ï¿½'=>'&Dagger;','ï¿½'=>'&circ;','ï¿½'=>'&permil;',
+                      'ï¿½'=>'&Scaron;','ï¿½'=>'&lsaquo;','ï¿½'=>'&OElig;',
+                      'ï¿½'=>'&lsquo;','ï¿½'=>'&rsquo;','ï¿½'=>'&ldquo;',
+                      'ï¿½'=>'&rdquo;','ï¿½'=>'&bull;','ï¿½'=>'&ndash;',
+                      'ï¿½'=>'&mdash;','ï¿½'=>'&tilde;','ï¿½'=>'&trade;',
+                      'ï¿½'=>'&scaron;','ï¿½'=>'&rsaquo;','ï¿½'=>'&oelig;',
+                      'ï¿½'=>'&Yuml','ï¿½'=>'&euro;');
+        $vtags = array('ï¿½'=>'&#8218;','ï¿½'=>'&#402;','ï¿½'=>'&#8222;',
+                       'ï¿½'=>'&#8230;','ï¿½'=>'&#8224;','ï¿½'=>'&#8225;',
+                       'ï¿½'=>'&#710;','ï¿½'=>'&#8240;','ï¿½'=>'&#352;',
+                       'ï¿½'=>'&#8249;','ï¿½'=>'&#338;','ï¿½'=>'&#8216;',
+                       'ï¿½'=>'&#8217;','ï¿½'=>'&#8220;','ï¿½'=>'&#8221;',
+                       'ï¿½'=>'&#8226;','ï¿½'=>'&#8211;','ï¿½'=>'&#8212;',
+                       'ï¿½'=>'&#732;','ï¿½'=>'&#8482;','ï¿½'=>'&#353;',
+                       'ï¿½'=>'&#8250;','ï¿½'=>'&#339;','ï¿½'=>'&#376;',
+                       'ï¿½'=>'&#8364;');
     
         $tags = array_merge($tags,get_html_translation_table(HTML_ENTITIES));
         foreach($tags as $k => $v) {
@@ -264,7 +278,7 @@ class text
      * @param bool Should the output be UTF-8
      * @return string Converted string
      */
-    function toXML($string,$utf8=true)
+    public static function toXML($string,$utf8=true)
     {
         $string = htmlspecialchars(text::removeEntities($string),ENT_NOQUOTES);
         if($utf8) {
@@ -279,7 +293,7 @@ class text
      * @param string URL
      * @return string Space delimited words
      */
-    function url2words($url)
+    public static function url2words($url)
     {
         $url = ' '.removeFileExtension($url);
         $url = preg_replace('/[^a-z0-9]/i',' ', $url);
@@ -293,7 +307,7 @@ class text
     /**
      * Convert a string into an URL string.
      *
-     * Je n'aime pas écrire du code becomes Je-n-aime-pas-ecrire-du-code
+     * Je n'aime pas ï¿½crire du code becomes Je-n-aime-pas-ecrire-du-code
      *
      * @author Olivier Meunier
      *
@@ -301,7 +315,7 @@ class text
      * @param string Separator ('-')
      * @return string URL ready string
      */
-    function str2url($str, $sep='-')
+    public static function str2url($str, $sep='-')
     {
         $pattern['A'] = '\x{00C0}-\x{00C5}';
         $pattern['AE'] = '\x{00C6}';
@@ -360,7 +374,7 @@ class text
      * @param string String to "secure"
      * @param string Secured string
      */
-    function secure($str)
+    public static function secure($str)
     {
         $str = trim($str);
         $str = stripslashes($str);
@@ -381,7 +395,7 @@ class text
      * @param string etc. string
      * @return string
      */
-    function truncate($string, $length=80, $etc='...')
+    public static function truncate($string, $length=80, $etc='...')
     {
         if ($length == 0)
             return '';

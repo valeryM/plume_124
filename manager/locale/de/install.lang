@@ -448,20 +448,3 @@ Die Version des Datenbanktreibers wurde bereits in die Konfigurationsdatei einge
 
 ;Impossible to set the version of the database engine in the configuration file.
 Eintragung der Version des Datenbanktreibers in die Konfigurationsdatei ist nicht möglich.
-
-;The Alertcom status has been added to the configuration file.
-
-
-;The Alertcom status is already set in the configuration file.
-
-
-;Impossible to set the status of Alertcom in the configuration file.
-
-
-;The Email to send the notification to has been added to the configuration file.
-
-
-;The Email to send the notification to is already set in the configuration file.
-
-
-;Impossible to set the Email to send the notification to in the configuration file.

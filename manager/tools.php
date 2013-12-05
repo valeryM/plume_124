@@ -28,9 +28,10 @@ auth::checkAuth(PX_AUTH_ADMIN);
 $m = new Manager();
 $_px_theme = $m->user->getTheme();
 
-
 $px_lang = new l10n($m->user->lang);
-$is_user_root = auth::asLevel(PX_AUTH_ROOT);
+
+// Niveau autorisé : Admin ald ROOT
+$is_user_root = auth::asLevel(PX_AUTH_ADMIN, $m->user->website, $m->user);
 
 require dirname(__FILE__).'/extinc/class.plugins.php';
 
@@ -59,12 +60,10 @@ if (!empty($_REQUEST['p']) && !empty($plugins_list[$_REQUEST['p']])
 $px_title = __('Tools and plugins');
 
 include dirname(__FILE__).'/mtemplates/_top.php';
-
 if ($include != '') {	
 	echo $include;
 } else {
 	echo '<h1 id="title_tools">'. __('Tools and plugins')."</h1>\n\n";
-	
 	if (count($plugins_list) == 0) {
         echo '<p class="message">'. __('No active or available tools.').'</p>';
     } else {

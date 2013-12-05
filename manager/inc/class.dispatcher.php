@@ -32,8 +32,11 @@ class Dispatcher
      *
      * @param string Query string ('')
      */
-    function Launch($query='')
+    public static function Launch($query='')
     {
+    	$listQueries = explode('&',$query);
+    	if (count($listQueries)>0) $query = $listQueries[0];
+    	
         $GLOBALS['_PX_render']['error'] = new CError();
 
 		$query = preg_replace('#^(/)+#', '/', '/'.$query);
@@ -41,6 +44,7 @@ class Dispatcher
         Dispatcher::loadBuiltinControllers();
         Dispatcher::loadControllers();
         Dispatcher::match($query);
+        
     }
 
 
@@ -49,7 +53,7 @@ class Dispatcher
      *
      * @param string Query string
      */
-    function match($query)
+    public static function match($query)
     {
         // Order the controllers by priority
         foreach ($GLOBALS['_PX_control'] as $key => $control) {
@@ -60,12 +64,11 @@ class Dispatcher
         $res = 200;
         foreach ($GLOBALS['_PX_control'] as $key => $control) {
             if (preg_match($control['regex'], $query)) {
-                if ($res == 404 and $control['priority'] < 8) {
+                if ($res == 404 and $control['priority'] < config::f('level404Ignored')) {
                     continue;
                 }
                 config::setVar('action', $control['plugin']);
-                $res = call_user_func(array($control['plugin'], 'action'), 
-                                      $query);
+                $res = call_user_func(array($control['plugin'], 'action'), $query);
                 if ($res != 301 and $res != 404) {
                     showDebugInfo();
                     return;
@@ -87,27 +90,26 @@ class Dispatcher
      * The builtin controllers are for: news, article, category, 
      * page not found, search and rss.
      */
-    function loadBuiltinControllers()
+    public static function loadBuiltinControllers()
     {
         Dispatcher::registerController('RSS', '#^/feed/(.*)$#i', 4);
         Dispatcher::registerController('Sitemap', '#^/sitemap#i', 4);
         Dispatcher::registerController('Error404', '#^/error404$#', 4);
         Dispatcher::registerController('Search', '#^/search/(.*)$#i', 4);
         Dispatcher::registerController('Comment', '#^/comments/(\d+)/*$#i', 4);
-        Dispatcher::registerController('Category',
-                                       '#^(.*/)(index)([0-9]*)$|^.*/$|^$#i',
-                                       6);
-        Dispatcher::registerController('Article',
-                                       '#^(.*/)([a-z]|[a-z][a-z0-9\_\-]*[a-z])(\d*)$#i',
-                                       7);
-        Dispatcher::registerController('News', '#^(.*/)(\d+)\-([^\.]*)$#i', 7);
-        Dispatcher::registerController('Error404', '#.*#', 9);
+        Dispatcher::registerController('Category', '#^(.*/)(index)([0-9]*)$|^.*/$|^$#i', 6);
+        //Dispatcher::registerController('Category', '#^(.*/)*(&Annee=)[0-9]{4}(&Mois=)[0-9]*$#i', 6);
+        Dispatcher::registerController('Article', '#^(.*/)([a-z]|[a-z][a-z0-9\_\-]*[a-z])(\d*)$#i', 7);
+        Dispatcher::registerController('News',   '#^(.*/)(\d+)\-([^\.]*)$#i', 10);
+        Dispatcher::registerController('Events', '#^(.*/)(\d+)\-([^\.]*)$#i', 10);
+        Dispatcher::registerController('Rsslinks', '#^(.*/)(\d+)\-([^\.]*)$#i', 10);
+        Dispatcher::registerController('Error404', '#.*#', 11);
     }
 
     /**
      * Load the controllers.
      */
-    function loadControllers()
+    public static function loadControllers()
     {
         $base = config::f('manager_path').'/tools/';
         $d = dir($base);
@@ -139,7 +141,7 @@ class Dispatcher
      * @param int Priority (5)
      * @return void
      */
-    function registerController($plugin, $regex, $priority=5)
+    public static function registerController($plugin, $regex, $priority=5)
     {
         if (!isset($GLOBALS['_PX_control'])) {
             $GLOBALS['_PX_control'] = array();

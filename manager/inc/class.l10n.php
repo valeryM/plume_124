@@ -31,10 +31,26 @@ function __($str)
     } elseif (config::f('locale_lang') != 'en' 
               && config::f('debug') === true) {
         $GLOBALS['_PX_debug_data']['untranslated'][] = $t;
+    } else if (config::f('log')=== true) {
+    	// en cas d'absence de la traduction et Log activée, 
+    	// on enregistre le texte non traduit dans un fichier        
+        $file = dirname(dirname(dirname(__FILE__))) .'/logs/untranslated.txt';
+        $text = config::f('locale_lang').'-'.$t .chr(10).chr(13);
+        //file_put_contents($file, $text , FILE_APPEND | LOCK_EX);
+		file_put($file, $text);
     }
     return $t;
 }
 
+
+function file_put($file,$text)  {
+	
+	$f = fopen($file,'a+');
+	fwrite($f,$text);
+	fclose($f);
+	
+	//file_put_contents($file, $text, FILE_APPEND | LOCK_EX);
+}
 
 /**
  * Localization class.
@@ -120,7 +136,7 @@ class l10n
      * @param bool Get only the encoding of the file
      * @return mixed Bool for success or encoding string
     */
-    function loadFile($file, $getencodingonly=false)
+    public static function loadFile($file, $getencodingonly=false)
     {
         if (!empty($GLOBALS['_PX_locale_files'][$file])) {
             return true;
@@ -164,7 +180,7 @@ class l10n
      * @param string Locale file to optimize
      * @return bool Success
      */
-    function optimizeLocale($file)
+    public static function optimizeLocale($file)
     {
         if (!file_exists($file)) {
             return false;
@@ -204,7 +220,7 @@ class l10n
      * @param string Domain ('')
      * @return array List of 2 letter iso codes
      */
-    function getAvailableLocales($plugin='', $domain='')
+    public static function  getAvailableLocales($plugin='', $domain='')
     {
         if ('' == $plugin) {
             $rootdir = config::f('manager_path').'/locale';
@@ -246,7 +262,7 @@ class l10n
      * @param string String of comma separated accepted languages ('')
      * @return string Language 2 letter iso code, default is 'en'
      */
-    function getAcceptedLanguage($available, $accepted ='')
+    public static function getAcceptedLanguage($available, $accepted ='')
     {
         if (empty($accepted)) {
             if (!empty($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
@@ -273,7 +289,7 @@ class l10n
      * @param bool Is the language the key in the array (false)
      * @return array The key is either the language or the iso code
      */
-    function getIsoCodes($lang=false)
+    public static function getIsoCodes($lang=false)
     {
         $res = array('aa' => 'Afar',
                      'ab' => 'Abkhazian',
@@ -424,7 +440,7 @@ class l10n
     /**
      * Returns the list of western iso codes.
      */
-    function getIsoWestern()
+    public static function getIsoWestern()
     {
         return array('af', 'sq', 'eu', 'ca', 'da', 'nl', 'en', 'fo', 'fi', 
                      'fr', 'de', 'is', 'ga', 'it', 'no', 'pt', 'rm', 'gd',

@@ -47,8 +47,8 @@ $mysql_version = preg_replace('/-log$/','',$rsV->f(0));
 if (version_compare($mysql_version, '3.23', '>=')) {
     $extra = ' TYPE=MyISAM';
 }
-
 if (version_compare($mysql_version, '4.1', '>=')) {
+	$extra = ' ENGINE=MyISAM';
     $charset = 'DEFAULT CHARSET=utf8';
 }
 

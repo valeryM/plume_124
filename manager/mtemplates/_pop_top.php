@@ -25,31 +25,33 @@ if (basename($_SERVER['SCRIPT_NAME']) == '_pop_top.php') exit;
    objects as they are used here. */
 header('Content-Type: text/html; charset='.strtolower($GLOBALS['_PX_config']['encoding']));
 ?>
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="<?php echo strtolower($GLOBALS['_PX_config']['encoding']); ?>" />
+	<!-- Set the viewport width to device width for mobile -->
+	<meta name="viewport" content="width=device-width" />
+<!-- 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-  <title><?php echo $px_title; ?> - PLUME CMS</title>
-  <script type="text/javascript" src="tools.js"> </script>
-  <?php Hook::run('onPrintHeaderManagerPopUpPage', array('m' => &$m)); ?>
-  <link rel="stylesheet" type="text/css" href="themes/<?php echo $_px_theme; ?>/style.css" />
-  <meta http-equiv="Content-Type" content="text/html; charset=<?php echo strtolower($GLOBALS['_PX_config']['encoding']); ?>" />
-  <script type="text/javascript">
-  <!--  
-  var pxThemeid = '<?php echo $_px_theme; ?>';  
-  //-->
-  </script>
-
+<meta http-equiv="Content-Type" content="text/html; charset=<?php echo strtolower($GLOBALS['_PX_config']['encoding']); ?>" />
+-->
+	<title><?php echo $px_title; ?> - PLUME CMS</title>
+	<script type="text/javascript" src="<?php echo $_PX_website_config['rel_url'];?>/manager/tools.js"> </script>
+	<?php Hook::run('onPrintHeaderManagerPopUpPage2', array('m' => &$m)); ?>
+	<link rel="stylesheet" type="text/css" href="<?php echo $_PX_website_config['rel_url'];?>/manager/js/themes/base/jquery.ui.all.css" />  
+	<link rel="stylesheet" type="text/css" href="<?php echo $_PX_website_config['rel_url'];?>/manager/themes/<?php echo $_px_theme; ?>/style.css" />
+	<script type="text/javascript">
+  		var pxThemeid = '<?php echo $_px_theme; ?>';  
+	</script>
 </head>
-
 <body>
 
-<div id="main-pop">
-
-
+<div id="main-pop" style="overflow:auto;height:650px">
 <div id="content">
-
 
 <?php
 if(!empty($_GET['msg'])) {

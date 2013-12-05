@@ -34,12 +34,13 @@ class Hook
      * @param array Parameters
      * @return bool Success
      */
-    function run($hook, $params=array())
+    public static function run($hook, $params=array())
     {
         $success = true;
         if (!empty($GLOBALS['_PX_hook'][$hook])) {
             foreach ($GLOBALS['_PX_hook'][$hook] as $key => $val) {
-                $res = call_user_func(array($val[0], $val[1]), $hook, $params);
+                //$res = call_user_func(array($val[0], $val[1]), $hook, $params);
+                $res = call_user_func($val[0].'::'.$val[1], $hook, array(&$params));
                 if ($res === false) {
                     $success = false;
                 }
@@ -57,7 +58,7 @@ class Hook
      * @param string Method of the plugin
      * @return bool Success
      */
-    function register($hook, $plugin, $method)
+    public static function register($hook, $plugin, $method)
     {
         if (!isset($GLOBALS['_PX_hook'])) {
             $GLOBALS['_PX_hook'] = array();

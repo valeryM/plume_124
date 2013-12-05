@@ -38,7 +38,7 @@
 # ***** END LICENSE BLOCK ***** */
 
 /*
-Classe de gestion des plugins et des thèmes
+Classe de gestion des plugins et des thï¿½mes
 */
 
 class plugins extends CError
@@ -81,7 +81,7 @@ class plugins extends CError
 				}
 			}
 			
-			/* On supprime les éléments NULL */
+			/* On supprime les ï¿½lï¿½ments NULL */
 			foreach ($tmp as $k => $v) {
 				if (is_array($v)) {
 					$res[$k] = $v;
@@ -161,7 +161,7 @@ class plugins extends CError
 		return true;
 	}
 
-	/* Lecture d'un répertoire à la recherche des desc.xml */
+	/* Lecture d'un rÃ©pertoire Ã  la recherche des desc.xml */
 	function _readDir()
 	{
 		if ($this->location === NULL) {
@@ -172,7 +172,7 @@ class plugins extends CError
 
 		$d = dir($this->location);
 
-		# Liste du répertoire des plugins
+		# Liste du rï¿½pertoire des plugins
 		while (($entry = $d->read()) !== false)
 		{
 			if ($entry != '.' && $entry != '..' &&
@@ -189,7 +189,7 @@ class plugins extends CError
 	/* Analyse des information plugin/theme */
 	function _xmlParser($attr,$content,&$res,$active_only=true)
 	{
-		# Vérification du nom
+		# VÃ©rification du nom
 		if (preg_match('/name="(.+)"/msU',$attr,$name))
 		{
 			# Actif

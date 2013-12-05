@@ -43,7 +43,7 @@ class date
      * @param  int Time (now)
      * @return int Timestamp
      */
-    function stamp($day=0, $month=0, $year=0, $time='')
+    public static function stamp($day=0, $month=0, $year=0, $time='')
     {
         $time = (strlen($time)) ? $time : time();
         return date('YmdHis', mktime(date('H',$time), date('i',$time), 
@@ -62,7 +62,7 @@ class date
      * @param  string Level of rouding 'd', ('m') or 'y'            
      * @return int Timestamp
      */
-    function round($time, $f='m')
+    public static function round($time, $f='m')
     {
         $n['y'] = 4;
         $n['m'] = 6;
@@ -77,7 +77,7 @@ class date
      * @param int Day offset (0)
      * @return int Timestamp
      */
-    function day($offset=0)
+    public static function day($offset=0)
     {
         return date::round(date::stamp($offset),'d');
     }
@@ -88,7 +88,7 @@ class date
      * @param int Month offset (0)
      * @return int Timestamp
      */
-    function month($offset=0)
+    public static function month($offset=0)
     {
         return date::round(date::stamp(0,$offset),'m'); 
     }
@@ -99,7 +99,7 @@ class date
      * @param int Year offset (0)
      * @return int Timestamp
      */
-    function year($offset=0)
+    public static function year($offset=0)
     {
         return date::round(date::stamp(0,0,$offset),'y');
     }
@@ -114,7 +114,7 @@ class date
      * @param  int mysql timestamp or (false)
      * @return int unix time    
      */
-    function unix($string=false)
+    public static function unix($string=false)
     {
         if (false === $string)
             return time();
@@ -134,25 +134,29 @@ class date
      * @param string Timestamp or date
      * @return mixed Array, false if not a good timestamp format.
      */
-    function explode($string)
+    public static function explode($string, $withSeconds = true)
     {
         $res = array();
-        if (preg_match('/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/',
-                       $string, $match)) {
+        if (preg_match('/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/', $string, $match)) {
             $res[] = $match[4];
             $res[] = $match[5];
-            $res[] = $match[6];
+            if ($withSeconds) {
+            	$res[] = $match[6];
+            } else $res[]="00";
             $res[] = $match[2];
             $res[] = $match[3];
             $res[] = $match[1];
-        } elseif (preg_match('/(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)/',
-                             $string, $match)) {
+
+        } elseif (preg_match('/(\d+)-(\d+)-(\d+)\s+(\d+):(\d+):(\d+)/', $string, $match)) {
             $res[] = $match[4];
             $res[] = $match[5];
-            $res[] = $match[6];
+            if ($withSeconds) {
+            	$res[] = $match[6];
+            } else $res[]="00";
             $res[] = $match[2];
             $res[] = $match[3];
             $res[] = $match[1];
+            
         } else {
             $res = false;
         }        
@@ -170,7 +174,7 @@ class date
      * @param  string Date time or array(h,m,s,M,D,Y)
      * @return string MySQL timestamp or array
      */
-    function clean($inputdate)
+    public static function clean($inputdate)
     {
         $as_array = true;
         $bad_date = false;
@@ -229,7 +233,7 @@ class date
      *
      * @return string '99991231235959'
      */
-    function EOT()
+    public static function EOT()
     {
         return '99991231235959';
     }
@@ -240,7 +244,7 @@ class date
      * @param string String date
      * @return bool True if at end of time
      */
-    function isEOT($date)
+    public static function isEOT($date)
     {
         return (date::EOT() == $date);
     }
@@ -256,7 +260,7 @@ class www
     /**
      * Get the current resource url.
      */
-    function getRequestUri()
+    public static function getRequestUri()
     {
         $s = '';
         if (isset($_SERVER['HTTPS'])) {
@@ -272,7 +276,7 @@ class www
      *
      * @return string Relative URL without trailing slash
      */
-    function getRelativeUrl() 
+    public static function getRelativeUrl() 
     {    
         if (preg_match('#(.*)/manager(.*)#i',$_SERVER["SCRIPT_NAME"],$match)) 
             return $match[1];
@@ -286,7 +290,7 @@ class www
      *
      * @return string Full URL with trailing /
      */
-    function getCurrentFullUrl()
+    public static function getCurrentFullUrl()
     {
         return www::getCurrentHostUrl().dirname($_SERVER['PHP_SELF']).'/';
     }
@@ -296,7 +300,7 @@ class www
      *
      * @return string Host URL without trailing /
      */
-    function getCurrentHostUrl()
+    public static function getCurrentHostUrl()
     {
         $s = '';
         if (isset($_SERVER['HTTPS']))
@@ -311,7 +315,7 @@ class www
      * The url will be a full url or an empty string depending of the
      * context.
      */
-    function getManagedWebsiteUrl()
+    public static function getManagedWebsiteUrl()
     {
         $c = config::f('context');
         $url = '';
@@ -333,7 +337,7 @@ class www
      *
      * @return string Document root.
      */
-    function getDocumentRoot()
+    public static function getDocumentRoot()
     {
         // this does not work in case of complex aliases only for
         // the document folder.
@@ -352,7 +356,7 @@ class Misc
      * @param int Length of the random string to be generated.
      * @return string Random string
      */
-    function getRandomString($len=35)
+    public static function getRandomString($len=35)
     {
         $string = '';
         $chars = '0123456789abcdefghijklmnopqrstuvwxyz'
@@ -373,7 +377,7 @@ class Misc
      * @param string Latin 1 string
      * @return string utf-8 string
      */
-	function latin1_utf8($str)
+	public static function latin1_utf8($str)
 	{
 		$conv = array(
                       chr(194).chr(128) => chr(226).chr(130).chr(172),
@@ -414,9 +418,9 @@ class Misc
  * @param string Category path
  * @return bool Success
  */
-function isGhostCat($path)
+function isGhostCat($path, $category_isGhost = 0)
 {
-    return preg_match('#/_#', $path);
+    return (preg_match('/#\/_#/', $path) || $category_isGhost == 1);
 }
 
 
@@ -444,6 +448,14 @@ function isFileSafe($file_name, $file_data ='')
     return true;
 }
 
+function safeFile($file_name,$file_data='') {
+	$ext = strtolower(getFileExtension($file_name));
+	$file_name = substr($file_name,0,-strlen($ext));
+	if (preg_match('/[^A-Za-z0-9\-\_\.]/', $file_name)) {
+		$file_name = preg_replace('/[^A-Za-z0-9\-\_\.]/', '_', $file_name);
+	}
+	return $file_name.$ext;
+}
 function prettySize($size)
 {
     $mb = 1024*1024;
@@ -474,9 +486,9 @@ function removeFileExtension($file_name)
     return preg_replace('/(\.[A-Za-z0-9]{2,4})$/i', '', $file_name);
 }
 
-function getParentDir($current_dir)
+function getParentDir($cur_dir)
 {
-    if (preg_match('#(.*/)*([^/])+/$#i',$current_dir, $match)) return $match[1];
+    if (preg_match('#(.*/)*([^/])+/$#i',$cur_dir, $match)) return $match[1];
     return '';
 }
 
@@ -561,5 +573,121 @@ function handleMagicQuotes(&$value)
         }
     }
     return $value;
+}
+
+//Fonction disponible uniquement sous PHP5, c'est pourquoi je l'ai recodé ici
+function JSONencode($a=false)
+{
+	if (is_null($a)) return 'null';
+	if ($a === false) return 'false';
+	if ($a === true) return 'true';
+	if (is_scalar($a))
+	{
+	  if (is_float($a))
+	  {
+		// Always use "." for floats.
+		return floatval(str_replace(",", ".", strval($a)));
+	  }
+
+	  if (is_string($a))
+	  {
+		static $jsonReplaces = array(array("\\", "/", "\n", "\t", "\r", "\b", "\f", '"', "\'"), array('\\\\', '\\/', '\\n', '\\t', '\\r', '\\b', '\\f', '\"', '\\\''));
+		return '"' . str_replace($jsonReplaces[0], $jsonReplaces[1], stripslashes($a)) . '"';
+	  }
+	  else
+		return $a;
+	}
+	$isList = true;
+	for ($i = 0, reset($a); $i < count($a); $i++, next($a))
+	{
+	  if (key($a) !== $i)
+	  {
+		$isList = false;
+		break;
+	  }
+	}
+	$result = array();
+	
+	if ($isList)
+	{
+	  foreach ($a as $v) $result[] = JSONencode($v);
+	  return '[' . join(',', $result) . ']';
+	}
+	else
+	{
+	  foreach ($a as $k => $v) $result[] = JSONencode($k).':'.JSONencode($v);
+	  return '{' . join(',', $result) . '}';
+	}
+}
+
+
+
+/**
+ * Converts an associative array of arbitrary depth and dimension into JSON representation.
+ *
+ * NOTE: If you pass in a mixed associative and vector array, it will prefix each numerical
+ * key with "key_". For example array("foo", "bar" => "baz") will be translated into
+ * {'key_0': 'foo', 'bar': 'baz'} but array("foo", "bar") would be translated into [ 'foo', 'bar' ].
+ *
+ * @param $array The array to convert.
+ * @return mixed The resulting JSON string, or false if the argument was not an array.
+ * @author Andy Rusterholz
+ */
+function array_to_json( $array ){
+
+	if( !is_array( $array ) ){
+		return false;
+	}
+
+	$associative = count( array_diff( array_keys($array), array_keys( array_keys( $array )) ));
+	if( $associative ){
+
+		$construct = array();
+		foreach( $array as $key => $value ){
+
+			// We first copy each key/value pair into a staging array,
+			// formatting each key and value properly as we go.
+
+			// Format the key:
+			if( is_numeric($key) ){
+				$key = '"key_'.$key.'"';
+			}
+			$key = '"'.addslashes($key).'"';
+
+			// Format the value:
+			if( is_array( $value )){
+				$value = array_to_json( $value );
+			} else if( !is_numeric( $value ) || is_string( $value ) ){
+				$value = '"'.addslashes($value).'"';
+			}
+
+			// Add to staging array:
+			$construct[] = "$key: $value";
+		}
+
+		// Then we collapse the staging array into the JSON form:
+		$result = '{ ' . implode( ', ', $construct ) . ' }';
+
+	} else { // If the array is a vector (not associative):
+
+		$construct = array();
+		foreach( $array as $value ){
+
+			// Format the value:
+			if( is_array( $value )){
+				$value = array_to_json( $value );
+			} else if( !is_numeric( $value ) || is_string( $value ) ){
+				$value = '"'.addslashes($value)."'";
+			}
+
+			// Add to staging array:
+			$construct[] = $value;
+		}
+
+		// Then we collapse the staging array into the JSON form:
+		$result = '[ ' . implode( ', ', $construct ) . ' ]';
+	}
+
+	return $result;
 }
 ?>

@@ -23,8 +23,6 @@
 error_reporting(E_ALL);
 session_start();
 
-
-
 include_once dirname(__FILE__).'/conf/config.php';
 include_once dirname(__FILE__).'/inc/class.config.php';
 include_once dirname(__FILE__).'/inc/class.hook.php';
@@ -34,6 +32,7 @@ include_once dirname(__FILE__).'/inc/class.category.php';
 include_once dirname(__FILE__).'/inc/class.resourceset.php';
 include_once dirname(__FILE__).'/inc/class.l10n.php';
 include_once dirname(__FILE__).'/inc/lib.auth.php';
+include_once dirname(__FILE__).'/inc/lib.sql.php';
 include_once dirname(__FILE__).'/inc/lib.sqlutils.php';
 include_once dirname(__FILE__).'/inc/lib.text.php';
 include_once dirname(__FILE__).'/inc/lib.utils.php';
@@ -41,6 +40,20 @@ include_once dirname(__FILE__).'/inc/class.files.php';
 include_once dirname(__FILE__).'/inc/class.dispatcher.php';
 include_once dirname(__FILE__).'/extinc/class.menu.php';
 include_once dirname(__FILE__).'/inc/lib.form.php';
+include_once dirname(__FILE__).'/inc/lib.pathSelector.php';
+include_once dirname(__FILE__).'/inc/lib.frontend.php';
+
+//require_once dirname(__FILE__).'/class.l10n.php';
+
+include_once dirname(__FILE__).'/inc/class.basicmanager.php';
+include_once dirname(__FILE__).'/inc/class.user.php';
+include_once dirname(__FILE__).'/inc/class.article.php';
+include_once dirname(__FILE__).'/inc/class.news.php';
+include_once dirname(__FILE__).'/inc/class.rsslinks.php';
+include_once dirname(__FILE__).'/inc/class.events.php';
+include_once dirname(__FILE__).'/inc/class.mail.php';
+include_once dirname(__FILE__).'/inc/class.website.php';
+//include_once dirname(__FILE__).'/tools/htmlValidator/Services/W3C/HTMLValidator.php';
 
 if(!empty($_GET)) {
     array_walk($_GET,'magicStrip');

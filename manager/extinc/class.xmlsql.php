@@ -94,7 +94,7 @@ class xmlsql
 				}
 			}
 			
-			# Si le test est passé, on tente la requête
+			# Si le test est passï¿½, on tente la requï¿½te
 			if ($test === true)
 			{
 				$ok = sprintf($v['request']['label'],$v['request']['string']);
@@ -185,5 +185,7 @@ class xmlsql
 	{
 		$this->_current_tag_cdata .= $cdata;
 	}
+	
+	
 }
 ?>

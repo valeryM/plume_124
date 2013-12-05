@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml version="1.0" encoding="utf-8"?>
 <!-- 
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -37,135 +37,99 @@
 # ***** END LICENSE BLOCK *****
 -->
 <database>
-       <!-- comments -->
-       <action id="comments" label="Create table %s" string="{{PREFIX}}comments">
-                <test eq="neq" value="{{PREFIX}}comments" label="The table %s already exists."
-		string="{{PREFIX}}comments" type="wrn">SHOW TABLES LIKE '{{PREFIX}}comments'</test>
-                CREATE TABLE {{PREFIX}}comments (
-		comment_id int(11) NOT NULL auto_increment,
-		resource_id int(11) NOT NULL default '0',
-		comment_user_id int(11) NOT NULL default '0',
-		comment_author varchar(50) NOT NULL default '',
-		comment_email varchar(255) NOT NULL default '',
-		comment_website varchar(255) NOT NULL default '',
-		comment_creation bigint(20) unsigned NOT NULL default '0',
-		comment_update bigint(20) unsigned NOT NULL default '0',
-		comment_status int(11) NOT NULL default '0',
-		comment_type int(11) NOT NULL default '0',
-		comment_content text NOT NULL,
-		comment_ip varchar(200) NOT NULL default '',
-		PRIMARY KEY  (comment_id),
-		KEY resource_id (resource_id)
-		) {{TYPE}}
+	<!-- add category isGhost column -->
+	<action id="addcategoriesisghostcolumn" label="Add the property category_isGhost column on table %s" string="{{PREFIX}}categories">
+		<test eq="neq" value="categoryisghost_support" label="The column %s has already been added."
+		string="categoryisghost_support" type="wrn" field="0">SHOW COLUMNS FROM {{PREFIX}}categories LIKE 'category_isGhost'</test>
+		ALTER TABLE {{PREFIX}}categories ADD category_isGhost tinyint(1) NOT NULL default '0' AFTER forum_id
 	</action>
-
-	<!-- smart404 -->
-	<action id="smart404" label="Creation of the table %s" string="{{PREFIX}}smart404">
-		<test eq="neq" value="{{PREFIX}}smart404" label="The table %s already exists."
-		string="{{PREFIX}}smart404" type="wrn">SHOW TABLES LIKE '{{PREFIX}}smart404'</test>
-		CREATE TABLE {{PREFIX}}smart404 (
-		website_id varchar(50) NOT NULL default '',
-		oldpage varchar(255) NOT NULL default '',
-		newpage varchar(255) NOT NULL default '',
-		lastroutingdate bigint(20) unsigned NOT NULL default '0',
-		total bigint(20) unsigned NOT NULL default '0',
-		PRIMARY KEY  (website_id,oldpage)
-		) {{TYPE}}
-	</action>
-
-	<!-- smart404logs -->
-	<action id="smart404logs" label="Creation of the table %s" string="{{PREFIX}}smart404logs">
-		<test eq="neq" value="{{PREFIX}}smart404logs" label="The table %s already exists."
-		string="{{PREFIX}}smart404logs" type="wrn">SHOW TABLES LIKE '{{PREFIX}}smart404logs'</test>
-		CREATE TABLE {{PREFIX}}smart404logs (
-		website_id varchar(50) NOT NULL default '',
-		page varchar(255) NOT NULL default '',
-		fromurl varchar(255) NOT NULL default '',
-		date bigint(20) unsigned NOT NULL default '0',
-		useragent varchar(255) NOT NULL default '',
-		KEY website_id (website_id),
-		KEY page (page),
-		KEY date (date)
-		) {{TYPE}}
-	</action>
-
-	<!-- smart404logs.fromurl index -->
-	<action id="smart404logsfromurl" label="Dropping of the index %s" string="{{PREFIX}}smart404logs.fromurl">
-		<test eq="eq" value="MUL" label="The index %s has already been dropped."
-		string="{{PREFIX}}smart404logs.fromurl" type="wrn" field="3">SHOW COLUMNS FROM {{PREFIX}}smart404logs LIKE 'fromurl'</test>
-		DROP INDEX fromurl ON {{PREFIX}}smart404logs
-	</action>
-
-	<!-- smart404logs.date index -->
-	<action id="smart404logsdate" label="Creation of the index %s" string="{{PREFIX}}smart404logs.date">
-		<test eq="neq" value="MUL" label="The index %s already exists."
-		string="{{PREFIX}}smart404logs.date" type="wrn" field="3">SHOW COLUMNS FROM {{PREFIX}}smart404logs LIKE 'date'</test>
-		ALTER TABLE {{PREFIX}}smart404logs ADD INDEX (date)
-	</action>
-
-	<!-- resources.resource_id auto_increment -->
-	<action id="resource_idauto_increment" label="Set the auto_increment for %s" string="{{PREFIX}}resources.resource_id">
-		<test eq="neq" value="auto_increment" label="The auto_increment for %s already exists."
-		string="{{PREFIX}}resources.resource_id" type="wrn" field="5">SHOW COLUMNS FROM {{PREFIX}}resources LIKE 'resource_id'</test>
-		ALTER TABLE {{PREFIX}}resources CHANGE resource_id resource_id INT( 10 ) UNSIGNED DEFAULT '0' NOT NULL AUTO_INCREMENT
-	</action>
-
-	<!-- users.user_id auto_increment -->
-	<action id="users.user_id.auto" label="Set the auto_increment for %s" string="{{PREFIX}}users.user_id">
-		<test eq="neq" value="auto_increment" label="The auto_increment for %s already exists."
-		string="{{PREFIX}}users.user_id" type="wrn" field="5">SHOW COLUMNS FROM {{PREFIX}}users LIKE 'user_id'</test>
-		ALTER TABLE {{PREFIX}}users CHANGE user_id user_id INT( 10 ) UNSIGNED DEFAULT '0' NOT NULL AUTO_INCREMENT
-	</action>
-
-	<!-- subtypes.subtype_id auto_increment -->
-	<action id="subtypes.subtype_id.auto" label="Set the auto_increment for %s" string="{{PREFIX}}subtypes.subtype_id">
-		<test eq="neq" value="auto_increment" label="The auto_increment for %s already exists."
-		string="{{PREFIX}}subtypes.subtype_id" type="wrn" field="5">SHOW COLUMNS FROM {{PREFIX}}subtypes LIKE 'subtype_id'</test>
-		ALTER TABLE {{PREFIX}}subtypes CHANGE subtype_id subtype_id INT( 10 ) UNSIGNED DEFAULT '0' NOT NULL AUTO_INCREMENT
-	</action>
-
-	<!-- categories.category_id auto_increment -->
-	<action id="categories.category_id.auto" label="Set the auto_increment for %s" string="{{PREFIX}}categories.category_id">
-		<test eq="neq" value="auto_increment" label="The auto_increment for %s already exists."
-		string="{{PREFIX}}categories.category_id" type="wrn" field="5">SHOW COLUMNS FROM {{PREFIX}}categories LIKE 'category_id'</test>
-		ALTER TABLE {{PREFIX}}categories CHANGE category_id category_id INT( 10 ) UNSIGNED DEFAULT '0' NOT NULL AUTO_INCREMENT
-	</action>
-
-	<!-- searchwords.word_id auto_increment -->
-	<action id="searchwords.word_id.auto" label="Set the auto_increment for %s" string="{{PREFIX}}searchwords.word_id">
-		<test eq="neq" value="auto_increment" label="The auto_increment for %s already exists."
-		string="{{PREFIX}}searchwords.word_id" type="wrn" field="5">SHOW COLUMNS FROM {{PREFIX}}searchwords LIKE 'word_id'</test>
-		ALTER TABLE {{PREFIX}}searchwords CHANGE word_id word_id INT( 10 ) UNSIGNED DEFAULT '0' NOT NULL AUTO_INCREMENT
+	<!-- add category has_xmedia_folder column -->
+	<action id="addhasmediafoldercolumn" label="Add the property has_xmedia_folder column on table %s" string="{{PREFIX}}categories">
+		<test eq="neq" value="hasxmediafolder_support" label="The column %s has already been added."
+		string="hasxmediafolder_support" type="wrn" field="0">SHOW COLUMNS FROM {{PREFIX}}categories LIKE 'has_xmedia_folder'</test>
+		ALTER TABLE {{PREFIX}}categories ADD has_xmedia_folder tinyint(1) NOT NULL default '0' AFTER category_isGhost
 	</action>
 	
-	<!-- articles.page_id auto_increment -->
-	<action id="articles.page_id.auto" label="Set the auto_increment for %s" string="{{PREFIX}}articles.page_id">
-		<test eq="neq" value="auto_increment" label="The auto_increment for %s already exists."
-		string="{{PREFIX}}articles.page_id" type="wrn" field="5">SHOW COLUMNS FROM {{PREFIX}}articles LIKE 'page_id'</test>
-		ALTER TABLE {{PREFIX}}articles CHANGE page_id page_id INT( 10 ) UNSIGNED DEFAULT '0' NOT NULL AUTO_INCREMENT
+	<!-- add link style column -->
+	<action id="addlinksstylecolumn" label="Add the property style column on table %s" string="{{PREFIX}}links">
+		<test eq="neq" value="linksstyle_support" label="The column %s has already been added."
+		string="linksstyle_support" type="wrn" field="0">SHOW COLUMNS FROM {{PREFIX}}links LIKE 'style'</test>
+		ALTER TABLE {{PREFIX}}links ADD style varchar(30) NOT NULL AFTER cible
 	</action>
-
-	<!-- drop sequencetable -->
-	<action id="dropsequencetable" label="Removal of the table %s" string="{{PREFIX}}sequencetable">
-		<test eq="eq" value="{{PREFIX}}sequencetable" label="The table %s has already been removed."
-		string="{{PREFIX}}sequencetable" type="wrn">SHOW TABLES LIKE '{{PREFIX}}sequencetable'</test>
-		DROP TABLE {{PREFIX}}sequencetable
+	
+	<!-- add news content column -->
+	<action id="addnewscontentcolumn" label="Add the property news_content column on table %s" string="{{PREFIX}}news">
+		<test eq="neq" value="newscontent_support" label="The column %s has already been added."
+		string="newscontent_support" type="wrn" field="0">SHOW COLUMNS FROM {{PREFIX}}news LIKE 'news_content' </test>
+		ALTER TABLE {{PREFIX}}news ADD news_content text NOT NULL AFTER feed_id
 	</action>
+	<!-- add news shortcontent column -->
+	<action id="addnewsshortcontentcolumn" label="Add the property news_shortcontent column on table %s" string="{{PREFIX}}news">
+		<test eq="neq" value="newsshortcontent_support" label="The column %s has already been added."
+		string="newsshortcontent_support" type="wrn" field="0">SHOW COLUMNS FROM {{PREFIX}}news LIKE 'news_shortcontent' </test>
+		ALTER TABLE {{PREFIX}}news ADD news_shortcontent text NOT NULL AFTER news_content
+	</action>	
 
-	<!-- add comment_support column -->
-	<action id="addcommentsupportcolumn" label="Add the comment support column on table %s" string="{{PREFIX}}resources">
-		<test eq="neq" value="comment_support" label="The column %s has already been added."
-		string="comment_support" type="wrn" field="0">SHOW COLUMNS FROM {{PREFIX}}resources LIKE 'comment_support'</test>
-		ALTER TABLE {{PREFIX}}resources ADD comment_support INT( 11 ) NOT NULL DEFAULT '1' AFTER subtype_id
+	<!-- create table rsslinks -->
+	<action id="rsslinks" label="Create table %s" string="{{PREFIX}}rsslinks">
+		<test eq="neq" value="{{PREFIX}}rsslinks" label="Table %s exists" 
+		string="{{PREFIX}}rsslinks">SHOW TABLES LIKE '{{PREFIX}}rsslinks'</test>
+		CREATE TABLE {{PREFIX}}rsslinks (
+		resource_id int(10) unsigned NOT NULL default '0',
+		rsslink_serial varchar(32) NOT NULL default '',
+		rsslink_titlewebsite varchar(250) NOT NULL default '',
+		rsslink_linkwebsite varchar(250) NOT NULL default '',
+		feed_id int(10) unsigned NOT NULL default '0',
+		PRIMARY KEY (resource_id),
+		KEY rsslink_serial (rsslink_serial),
+		KEY feed_id (feed_id)
+		) {{TYPE}} {{CHARSET}}
+	</action>	
+	
+	<!-- update user_id column -->
+	<action id="changeusercatsuseridcolumn" label="Update the property user_id column on table %s" string="{{PREFIX}}usercats">
+		<test eq="neq" value="userscatsuserid_support" label="The column %s does not exist."
+		string="userscatsuserid_support" type="wrn" field="0">SHOW COLUMNS FROM {{PREFIX}}news LIKE 'user_id' </test>
+		ALTER TABLE {{PREFIX}}usercats CHANGE user_id user_id int(11) unsigned NOT NULL
+	</action>	
+	
+	<!-- create table usergroups -->
+	<action id="usergroups" label="Create table %s" string="{{PREFIX}}usergroups">
+		<test eq="neq" value="{{PREFIX}}usergroups" label="Table %s exists" 
+		string="{{PREFIX}}usergroups">SHOW TABLES LIKE '{{PREFIX}}usergroups'</test>
+		CREATE TABLE {{PREFIX}}usergroups (
+		group_id int(10) NOT NULL auto_increment,
+		group_name varchar(50) NOT NULL,
+		PRIMARY KEY (group_id)
+		) {{TYPE}} {{CHARSET}}
 	</action>
-
-	<!-- categoryasso.identifier key -->
-	<action id="categoryasso.identifier" label="Set index on the column for %s" string="{{PREFIX}}categoryasso.identifier">
-		<test eq="neq" value="1" label="The index for %s already exists."
-		string="{{PREFIX}}categoryasso.identifier" type="wrn" field="3">SHOW INDEXES FROM {{PREFIX}}categoryasso WHERE key_name LIKE 'identifier_idx'</test>
-	ALTER TABLE {{PREFIX}}categoryasso ADD INDEX identifier_idx (identifier) 
+	
+	<!-- add users categoryautoadded column -->	
+	<action id="adduserscategoryautoaddedcolumn" label="Add the property user_categoryAutoAdded column on table %s" string="{{PREFIX}}users">
+		<test eq="neq" value="userscategoryautoadded_support" label="The column %s has already been added."
+		string="userscategoryautoadded_support" type="wrn" field="0">SHOW COLUMNS FROM {{PREFIX}}users LIKE 'user_categoryAutoAdded' </test>
+		ALTER TABLE {{PREFIX}}users ADD user_categoryAutoAdded tinyint(1) NOT NULL default '1' AFTER user_path_media
+	</action>	
+	
+	<!-- add websites website_img  column-->
+	<action id="addwebsiteimagecolumn" label="Add the property website_img column on table %s" string="{{PREFIX}}websites">
+		<test eq="neq" value="websiteimage_support" label="The column %s has already been added."
+		string="websiteimage_support" type="wrn" field="0">SHOW COLUMNS FROM {{PREFIX}}websites LIKE 'website_img' </test>
+		ALTER TABLE {{PREFIX}}websites ADD website_img varchar(150) default NULL AFTER website_color
+	</action>	
+	
+	<!-- OPTIONAL !!! rating : to  save rating data -->
+	<action id="rating" label="Create table %s" string="{{PREFIX}}rating">
+		<test eq="neq" value="{{PREFIX}}rating" label="Table %s exists" 
+		string="{{PREFIX}}rating">SHOW TABLES LIKE '{{PREFIX}}rating'</test>
+		CREATE TABLE {{PREFIX}}rating (
+		id bigint(20) NOT NULL auto_increment,
+		page varchar(50) NOT NULL,
+		emetteur varchar(30) NOT NULL,
+		date datetime NOT NULL,
+		note int(11) NOT NULL,
+		PRIMARY KEY (id),
+		KEY page (page,emetteur,date)
+		) {{TYPE}} {{CHARSET}}
 	</action>
-
 </database>
-
-

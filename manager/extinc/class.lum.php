@@ -43,7 +43,7 @@ Classe LUM
 class lum
 {
 
-	//Déclaration des variables
+	//DÃ©claration des variables
 	var $env;
 	var $nb_per_page;
 	var $nb_pages_per_group;
@@ -73,7 +73,7 @@ class lum
 			$this->nb_colonnes = $nb_colonnes;
 		}
 		
-		//Nombre d'éléments du tableau
+		//Nombre d'Ã©lÃ©ments du tableau
 		if (!$this->virtual)
 		{
 			$this->nb_elements = count($arryValues);
@@ -85,21 +85,18 @@ class lum
 		
 		//Nombre de pages possibles
 		$this->nb_pages = ceil($this->nb_elements/$this->nb_per_page);
-		
-		//On vérifie que env ne sort pas du nombre de pages
-		if ($env <= $this->nb_pages && $env != "")
-		{
+		//On vÃ©rifie que env ne sort pas du nombre de pages
+		//if (is_int($env) && $env <= $this->nb_pages) {
+		if ($env <= $this->nb_pages && $env != "" ) 	{
 			$this->env = $env;
-		}
-		else
-		{
+		} else {
 			$this->env = 1;
 		}
-		
+		//echo 'nb pages='.$this->nb_pages.' env:'.$env;
 		//Nombre de groupes
 		$this->nb_groups = ceil($this->nb_pages/$this->nb_pages_per_group);
 		
-		//Index de début de page
+		//Index de dÃ©but de page
 		$this->index_start = ($this->env-1)*$this->nb_per_page;
 		
 		//Index de fin de page
@@ -112,10 +109,11 @@ class lum
 		//Index du groupe en cours
 		$this->env_group = ceil($this->env/$this->nb_pages_per_group);
 		
-		//Index de la première page du groupe
+		//Index de la premiÃ¨re page du groupe
 		$this->index_group_start = ($this->env_group-1)*$this->nb_pages_per_group+1;
+		if ($this->index_group_start <= 0) $this->index_group_start = 1;
 		
-		//Index de la dernière page du groupe
+		//Index de la derniÃ¨re page du groupe
 		$this->index_group_end = $this->index_group_start+$this->nb_pages_per_group-1;
 		if($this->index_group_end > $this->nb_pages)
 		{
@@ -126,36 +124,37 @@ class lum
 	# Initialisation
 	function init()
 	{
-		//Déclaration des variables
-		$this->nb_per_page = 15;
+		//DÃ©claration des variables
+		$this->nb_per_page = 30;
 		$this->nb_pages_per_group = 10;
-		$this->nb_colonnes = 1;
+		$this->nb_colonnes = 2;
 		$this->arryValues = array();
 		$this->func_name = NULL;
 		$this->varPage = 'env';
 		
 		//Formatage HTML
 		$this->htmlLegende = '';
-		
+		//$this->htmlHeader = '<ul id="icon gallery" class="gallery ui-helper-reset ui-helper-clearfix">' ;
+			
 		$this->htmlHeader = '<table cellpadding="0" cellspacing="0" width="100%" border="1">';
-		$this->htmlLineStart = '<tr>';
-		$this->htmlColStart = '<td>';
-		$this->htmlColEnd = '</td>';
-		$this->htmlLineEnd = '</tr>';
+		$this->htmlLineStart = '<tr>';	// '<tr>';
+		$this->htmlColStart = '<td>'; //'<li class="icon ui-widget-content ui-corner-tr">';	//<td>';
+		$this->htmlColEnd = '<td>';	//</li>';	//		</td>';
+		$this->htmlLineEnd = '<tr>';	//</tr>';
 		$this->htmlFooter = '</table>';
-		
+		//$this->htmlFooter = '</ul>';
 		$this->htmlLinksStart = '<p>';
 		$this->htmlLinksEnd = '</p>';
 		
 		$this->htmlCurPgStart = '<span class="lumActive"><b>';
 		$this->htmlCurPgEnd = '</b></span>';
 		
-		$this->htmlPrev = '&lt;page préc.';
+		$this->htmlPrev = '&lt;page prÃ©c.';
 		$this->htmlNext = 'page suiv.&gt;';
 		$this->htmlPrevGrp = '...';
 		$this->htmlNextGrp = '...';
 		
-		$this->htmlEmpty = '<p><b>Aucun résultat</b></p>';
+		$this->htmlEmpty = '<p><b>Aucun rÃ©sultat</b></p>';
 		
 		$this->htmlLinksLib = 'page(s) : ';
 	}
@@ -164,21 +163,19 @@ class lum
 	function drawPage()
 	{
 		$htmlres = NULL;
-		
+		//echo 'Lum::drawpage ';
 		if($this->virtual)
 			$index = 0;
-		
-		if(count($this->arryValues))
+		if(count($this->arryValues) >0)
 		{
 			$htmlres .= $this->htmlLegende;
 			$htmlres .= $this->htmlHeader;
-			
 			$line_num = 0;
-			
+			//echo 'Lum::drawpage start='.$this->index_start.' - end='.$this->index_end;
 			for($i=$this->index_start; $i<=$this->index_end; $i++)
 			{
 				$func_name = $this->func_name;
-				
+				//echo 'Lum::drawpage '.$func_name;
 				if(!$this->virtual)
 					$index = $i;
 				
@@ -191,9 +188,12 @@ class lum
 					$line_num++;
 				}
 				//*/
-				
+				//echo 'valeur : '.print_r($this->arryValues[$index],true);
 				$htmlres .= $this->htmlColStart;
-				$htmlres .= $func_name($this->arryValues[$index],$i);
+				if(isset($this->arryValues[$index]))  {
+					//echo 'Lum::drawpage Appel '.func_name.'('.$this->arryValues[$index].')';
+					$htmlres .= $func_name($this->arryValues[$index],$i);
+				}
 				$htmlres .= $this->htmlColEnd;
 				
 				//*
@@ -225,42 +225,56 @@ class lum
 	function setURL($pageNum)
 	{
 		$strLink = $_SERVER['REQUEST_URI'];
-		
+		//echo 'start: '.$strLink.'<br>';
 		//Suppression de l'information de session
-		if(ereg(session_name().'='.session_id().'([&]){1}',$strLink))				
-				$strLink = ereg_replace(session_name()."=".session_id().'([&]){1}','',$strLink);				
+		//if(ereg(session_name().'='.session_id().'([&]){1}',$strLink))
+		if(preg_match('#'.session_name().'='.session_id().'([&]){1}#',$strLink))
+				//$strLink = ereg_replace(session_name()."=".session_id().'([&]){1}','',$strLink);
+				$strLink = preg_replace(session_name()."=".session_id().'([&]){1}','',$strLink);				
 		else				
-				$strLink = ereg_replace('([?&]){1}'.session_name().'='.session_id(),'',$strLink);
+				//$strLink = ereg_replace('([?&]){1}'.session_name().'='.session_id(),'',$strLink);
+				$strLink = preg_replace('`([?&]){1}'.session_name().'='.session_id().'`','',$strLink);
 		
 		
-		if(ereg('([?&]){1}'.$this->varPage.'=([0-9])+',$strLink))
+		//if(ereg('([?&]){1}'.$this->varPage.'=([0-9])+',$strLink))
+		if(preg_match('`([?&]){1}'.$this->varPage.'=([0-9])+`',$strLink))
 		{
-			$strLink = ereg_replace('([?&]){1}'.$this->varPage.'=([0-9])+', '\\1'.$this->varPage.'='.$pageNum, $strLink);
+			//$strLink = ereg_replace('([?&]){1}'.$this->varPage.'=([0-9])+', '\\1'.$this->varPage.'='.$pageNum, $strLink);
+			$strLink = preg_replace('`([?&]){1}'.$this->varPage.'=([0-9])+`', '\\1'.$this->varPage.'='.$pageNum, $strLink);
 		}
 		else
 		{
-			if(ereg('\?',$strLink))
+			//if(ereg('\?',$strLink))
+			if(preg_match('`\?`',$strLink))
 			{
-				$strLink = $strLink.'&'.$this->varPage.'='.$pageNum;
+				$strLink .= '&'.$this->varPage.'='.$pageNum;
 			}
 			else
 			{	
-				$strLink = $strLink.'?'.$this->varPage.'='.$pageNum;
+				$strLink .= '?'.$this->varPage.'='.$pageNum;
 			}			
 		}	
+		//echo 'end: '.$strLink.'<br>';
 		return str_replace('&','&amp;',$strLink);
 	}
 	
 	
 	function drawLinks()
 	{
-		//Création des liens
+		//CrÃ©ation des liens
+		//echo 'Lum::drawlinks ';
 		$htmlLinks = '';
 		$htmlPrev = '';
 		$htmlNext = '';
 		$htmlPrevGrp = '';
 		$htmlNextGrp = '';
-		
+		//echo '1 :'.$current_dir;
+
+		if ($this->index_group_start ==$this->index_group_end )  {
+			$htmlres="1";
+			return $this->htmlLinksStart.$this->htmlLinksLib.$htmlres;
+			exit;
+		}
 		for($i=$this->index_group_start; $i<=$this->index_group_end; $i++)
 		{
 			if($i == $this->env)
@@ -278,7 +292,7 @@ class lum
 			}
 		}
 		
-		//Page précédente
+		//Page prï¿½cï¿½dente
 		if($this->env != 1)
 		{
 			$htmlPrev = '<a href="'.$this->setURL($this->env-1).'">';
@@ -294,7 +308,7 @@ class lum
 			$htmlNext .= '</a>';
 		}
 		
-		//Groupe précédent
+		//Groupe prï¿½cï¿½dent
 		if($this->env_group != 1)
 		{
 			$htmlPrevGrp = '&nbsp;<a href="'.$this->setURL($this->index_group_start - $this->nb_pages_per_group).'">';
@@ -322,21 +336,21 @@ class lum
 			return $htmlres; }			
 	}
 	
-	//Méthode de débugage
+	//Mï¿½thode de dï¿½bugage
 	function debug()
 	{
 		return '<pre>'.
-		'Nombre d\'éléments par page ........ '.$this->nb_per_page."\n".
+		'Nombre d\'Ã©lÃ©ments par page ........ '.$this->nb_per_page."\n".
 		'Nombre de pages par groupe ......... '.$this->nb_pages_per_group."\n".
 		'Nombre de colonnes ................. '.$this->nb_colonnes."\n".
-		'Nombre d\'éléments ................. '.$this->nb_elements."\n".
+		'Nombre d\'Ã©lÃ©ments ................. '.$this->nb_elements."\n".
 		'Nombre de pages .................... '.$this->nb_pages."\n".
 		'Nombre de groupes .................. '.$this->nb_groups."\n\n".
-		'Index de départ .................... '.$this->index_start."\n".
+		'Index de dÃ©part .................... '.$this->index_start."\n".
 		'Index de fin ....................... '.$this->index_end."\n".
 		'Groupe en cours .................... '.$this->env_group."\n".
-		'Index de la première page du groupe  '.$this->index_group_start."\n".
-		'Index de la dernière page du groupe  '.$this->index_group_end."\n".
+		'Index de la premiÃ¨re page du groupe  '.$this->index_group_start."\n".
+		'Index de la derniÃ¨re page du groupe  '.$this->index_group_end."\n".
 		'</pre>';
 	}
 }//Fin de la classe

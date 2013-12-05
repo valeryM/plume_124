@@ -27,11 +27,20 @@ require_once dirname(__FILE__).'/class.basicmanager.php';
 require_once dirname(__FILE__).'/class.user.php';
 require_once dirname(__FILE__).'/class.article.php';
 require_once dirname(__FILE__).'/class.news.php';
+require_once dirname(__FILE__).'/class.rsslinks.php';
+require_once dirname(__FILE__).'/class.events.php';
+require_once dirname(__FILE__).'/class.mail.php';
+//require_once dirname(dirname(__FILE__)).'/tools/htmlValidator/Services/W3C/HTMLValidator.php';
+
+include_once dirname(__FILE__).'/class.basicmanager.php';
 
 class Manager extends BasicManager
 {
     var $con  = null;
     var $user = null;
+	var $cats = null;
+	var $groups = null;
+	var $website = null;
     
     /**
      * Constructor.
@@ -46,6 +55,8 @@ class Manager extends BasicManager
             //create a user from the session
             $this->user = new User();
             $this->user->synchronize();
+            $this->website = new Website();
+            $this->website = $this->getSites($this->user->website);
             $this->l10n = new l10n($this->user->lang);
         }
     }
@@ -70,39 +81,106 @@ class Manager extends BasicManager
      */
     function getMessage()
     {
-        $m = '';
+        $msg = '';
         if (!empty($_SESSION['message'])) {
-            $m = $_SESSION['message'];
+            $msg = $_SESSION['message'];
             $_SESSION['message'] = '';
             unset($_SESSION['message']);
         }
-        return $m;
+        return $msg;
+    }
+
+    /**
+     * Set a message.
+     *
+     * @param string Message
+     */
+    function setPopupMessage($msg)
+    {
+        $_SESSION['popupmessage'] = $msg;
+    }
+
+    /**
+     * Get the message
+     *
+     * The message is poped.
+     *
+     * @return string Message
+     */
+    function getPopupMessage()
+    {
+        $msg = '';
+        if (!empty($_SESSION['popupmessage'])) {
+            $msg = $_SESSION['popupmessage'];
+            $_SESSION['popupmessage'] = '';
+            unset($_SESSION['popupmessage']);
+        }
+        return $msg;
     }
     
     /* Functions used in the manager to populate data for the 
      * forms etc...
      * ------------------------------------------------------------ */
+    function getArrayUserGroups()  {
+       $this->groups = $this->getUserGroups();
+       $arry_grp = array();
+		
+       while (!$this->groups->EOF()) {
+            $name  = $this->groups->f('group_name');
+            $arry_grp[$name] = $this->groups->f('group_id');
+            $this->groups->moveNext();
+        }
+        return $arry_grp;
+    }
     
     /**
      *  If $addallcat set to true a special "All the categories" is also
      *  given. Used for the listing of the resources in the manager.
      */
-    function getArrayCategories($addallcat=false)
+    function getArrayCategories($addAllCat=false)
     {
-        $cats = $this->getCategories();
+        $this->cats = $this->getCategories();
         $arry_cat = array();
-        if ($addallcat)
+		
+        if ($addAllCat)
             $arry_cat[ __('All the categories')]='allcat';
-        while (!$cats->EOF()) {
-            $name  = $cats->f('category_name');
-            $name .= ' ('.$cats->f('category_path').')';
-            if (isGhostCat($cats->f('category_path'))) 
+        
+        while (!$this->cats->EOF()) {
+			//echo $cats->f('category_name') . "-" $cats->f('category_path');
+            $name  = $this->cats->f('category_name');
+            $name .= ' ('.$this->cats->f('category_path').')';
+            if (isGhostCat($this->cats->f('category_path'), $this->cats->f('category_isGhost'))) 
                 $name .= ' ['. __('Hidden category').']';
-            $arry_cat[$name] = $cats->f('category_id');
-            $cats->moveNext();
+            $arry_cat[$name] = $this->cats->f('category_id');
+            $this->cats->moveNext();
         }
         return $arry_cat;
     }
+	
+    
+
+    /**
+     * Check if a category is into the list of categories for the user
+     * @param integer Id of category to check
+     * @return boolean true if Id is into the list, false if not.
+     */
+	function isFromCategoryList($id=0)   
+	{
+		$rep = false;
+		$this->cats = $this->getCategories();
+		//$this->cats->moveFirst();
+		//if ($this->user->cats == null) $this->user->loadCategories();
+		while (!$this->cats->EOF() )  {
+			//echo "  id recherche " . $id . " ---  id dans this->cats : " .$this->cats->f('category_id');
+			if ($id == $this->cats->f('category_id') ) {
+				//echo "categorie trouve : " . $rep;
+				$rep = true;
+				break;
+			}
+			$this->cats->moveNext();
+		}
+		return $rep;
+	}
         
     /**
      * Get the list of months for the drop-down selectors.
@@ -122,7 +200,7 @@ class Manager extends BasicManager
         //getAllDates returns the values in time DESC order
         foreach ($this->getAllDates('m', $type, $cat_id) as $k => $v) {
             if (empty($last)) $last = $k;
-            $arry_months[if_utf8(strftime('%B %Y',date::unix($k)))] = $k;
+            $arry_months[__(strftime('%B',date::unix($k))).' '.strftime('%Y',date::unix($k))] = $k;
         }
         return array($k, $last, $arry_months);
     }
@@ -137,7 +215,7 @@ class Manager extends BasicManager
         $arry_months = array();
         for ($i=1; $i<=12; $i++) {
             $month = sprintf('%02d', $i);
-            $arry_months[if_utf8(strftime('%B', strtotime('2000-'.$month.'-01')))] = $month;
+            $arry_months[__(strftime('%B', strtotime('2000-'.$month.'-01')))] = $month;
         }
         return $arry_months;
     }
@@ -216,7 +294,47 @@ class Manager extends BasicManager
             return false;
         }
     }
-
+    /**
+     * Check if a user has the rights to edit a resource.
+     *
+     * A ressource can be edited by a user if:
+     * - The user is "owner" of the resource and the ressource is not online.
+     * - The user is "owner" of the resource and user has at least an PX_USER_LEVEL_INTERMEDIATE level.
+     * - The user has at least an PX_USER_LEVEL_ADVANCED level.
+     *
+     * @param &object Resource object
+     * @return bool 
+     */
+     function asRightToCopy(&$res)
+    {
+        if ( ($res->f('status') ==PX_RESOURCE_STATUS_VALIDE 
+        				|| $res->f('status') ==PX_RESOURCE_STATUS_OFFLINE )
+        	&& (auth::asLevel(PX_USER_LEVEL_ADVANCED,$res->f('website_id'))
+				|| (auth::asLevel(PX_USER_LEVEL_INTERMEDIATE,$res->f('website_id'))
+						&& $res->f('user_id') == $this->user->getId())				
+				||($res->f('user_id') == $this->user->getId() ) ) )  {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    /**
+     * Check if user has the rights to view a resource.
+     * 
+     * Return true if the category from the resource is in the list of categories for the user.
+     * @param &object Resource object
+     * @return boolean
+     */
+    function asRightToView(&$res)
+    {
+		//find if the category from the resource is in the list of Category from user
+		//$user_local=$this->user->getId();
+		//$res->f('website_id');
+		$id=$res->f('category_id');
+        //echo "res->category_id " . $id . " ";
+		return ($this->isFromCategoryList($id ) ) ;
+        
+    }
 
     /**
      * Load a resource for the current website.
@@ -259,6 +377,11 @@ class Manager extends BasicManager
         if (!$res->addToCategory($catid, $type)) {
             $this->bulkSetError($res->error());
             return false;
+        } else {
+        	// Send a mail to notify what's adding
+        	//if (PX_CONFIG_MAIL_ON_CREATE == true)
+        		//@TODO : Envoil mail à la création 
+        		//$this->sendEmail('Ajout d\'une resource dans une catégorie', 'catégorie='.$catid, $cat->f('website_id'),PX_CONFIG_MAIL_LEVEL);
         }
         $this->triggerMassUpdate();
         return true;
@@ -304,7 +427,7 @@ class Manager extends BasicManager
      * @param string Website id ('')
      * @return bool true
      */
-    function triggerMassUpdate($website='')
+    public static function triggerMassUpdate($website='')
     {
         if (empty($website)) $website = config::f('website_id'); 
         @touch(dirname(__FILE__).'/../cache/'.$website.'/MASS_UPDATE', time());
@@ -322,7 +445,8 @@ class Manager extends BasicManager
         include_once dirname(__FILE__).'/class.search.php';
 
         $s = new Search($this->con, $res->f('website_id'));
-        $s->index($res->getAsString(), $res->f('resource_id'));
+        
+        $s->index(html_entity_decode($res->getAsString(),ENT_QUOTES,'UTF-8'), $res->f('resource_id'));
         if (false !== $s->error()) {
             return false;
         }
@@ -501,8 +625,10 @@ class Manager extends BasicManager
 
         
 
-    function saveUser($id, $username, $password, $realname, $email, $pubemail, $authwebs = null)
+    function saveUser($id, $username, $password, $realname, $email, $pubemail, $authwebs = null,$group=0, $path_media ='', $lang='')
     {
+    	global $_PX_website_config;
+    	
         if ($id == 1 && $this->user->f('user_id') != 1) {
             $this->setError(__('Error: You do not have the rights to modify this user.'), 400);
             return false;
@@ -536,6 +662,24 @@ class Manager extends BasicManager
             $this->setError(__('Error: You need to give a name.'), 400);
             return false;
         }
+        // formattage du champ Path_media
+        if ($path_media !='') {
+	        $path_media = str_replace('\\','/',$path_media);
+	        if (substr($path_media,0,1) == '/' ) {
+	        	$path_media = substr($path_media,1);
+	        }
+	        if (substr($path_media,strlen($path_media))=='/') {
+	        	$path_media = substr($path_media,0,strlen($path_media)-1);
+	        }
+	        //$path_media = str_replace('/','_',$path_media);
+	        
+	        // be sure the folder exist
+	        if (!files::createfolder($_PX_website_config['xmedia_root'].'/'.$path_media)) {
+	        	$this->setError(__('Error: media folder is not correct.'. $_PX_website_config['xmedia_root'].'/'.$path_media),400);
+	        	return false;
+	        }
+        }
+        
         if (empty($id)) {
             $insReq = 'INSERT INTO ';
         } else {
@@ -545,7 +689,16 @@ class Manager extends BasicManager
                         user_username = \''.$this->con->escapeStr($username).'\',
                         user_realname = \''.$this->con->escapeStr($realname).'\',
                         user_email    = \''.$this->con->escapeStr($email).'\',
-                        user_pubemail = \''.$this->con->escapeStr($pubemail).'\'';
+                        user_pubemail = \''.$this->con->escapeStr($pubemail).'\',
+                        user_group = \''.$this->con->escapeStr($group).'\'';
+        
+        if (!empty($lang)) {
+                $insReq.= ', lang_id = \''.$this->con->escapeStr($lang).'\',
+                        country_id = \''.$this->con->escapeStr($lang).'\'';
+        }
+        if (!empty($path_media)) {
+        		$insReq .= ', user_path_media = \''.$this->con->escapeStr($path_media).'\'';
+        }
         if (!empty($password)) {
             $insReq .= ', user_password = \''.$this->con->escapeStr(md5($password)).'\'';
         }
@@ -579,17 +732,95 @@ class Manager extends BasicManager
                 }
             }
         }
+        // save default prefs if create by admin
+        if (!empty($id) && auth::asLevel(PX_AUTH_ROOT)) {
+        	$thisUser = new User($id);
+        	$thisUser->savePref('theme', 'pmtango', '#all#');
+        	$thisUser->savePref('lang',$this->con->escapeStr($lang),'#all#');
+        	unset($thisUser);
+        }
+        // if saving user himself
         if (!empty($id) and $id == $this->user->f('user_id')) {
             $this->user->load($id);
             $this->user->synchronize(PX_USER_SYNCHRO_TO_SESSION);
         }
         return $id;
     }
+	
+    function saveUserCats($user_id=0, $category=0)  {
+    	// on supprime d'abord l'enregistrement (ou cas ou il existe)
+    	$sql='DELETE FROM '.$this->con->pfx.'usercats WHERE user_id='. $user_id .'
+    			AND category_id='. $category;   
+    	$this->con->execute($sql);
+    	// ensuite on rajoute l'enregistrement
+    	$sql_site='SELECT website_id FROM '.$this->con->pfx.'categories WHERE category_id='. $category;
+    	
+    	$sql='INSERT INTO '.$this->con->pfx.'usercats SET 
+    			user_id='. $user_id .',
+    			website_id= (' . $sql_site .'),
+    			category_id='. $category;
+    	
+    	$rep=$this->con->execute($sql);
+    	return $rep;
+    }
+    
+    function saveGroup($group_id=0, $group_name='') {
+    	if ($group_id!=0) {
+    		$sql = 'UPDATE '.$this->con->pfx."usergroups SET group_name='".$group_name."' WHERE group_id=".$group_id;    		
+    	} else {
+    		$sql = 'INSERT INTO '.$this->con->pfx."usergroups SET group_name='".$this->con->escapeStr($group_name)."' ";
+    	}    	
+    	$rep=$this->con->execute($sql);
+    	//echo $sql;
+    	return $rep;
+    }
 
+    function saveUserCatsAllAdmin($category=0)  {
+    	
+    	$sqlAdmin = 'SELECT * FROM '.$this->con->pfx.'grants WHERE level=9';
+    	$admin = new Recordset();
+    	//if ( (
+    	$admin = $this->con->select($sqlAdmin); 
+    	while (!$admin->EOF()) {
+    		$sql_site='SELECT website_id FROM '.$this->con->pfx.'categories WHERE category_id='. $category;
+		   	$sql='INSERT INTO '.$this->con->pfx.'usercats SET 
+		   			user_id='. $admin->f('user_id') .',
+		   			website_id = (' . $sql_site .'),
+		   			category_id='. $category;
+     		$this->con->execute($sql);  			
+    		$admin->MoveNext();
+    	}
+    	
+    }
 
+    function saveUserCatsFromParent($parentid=0,$category=0)  {
+    	 
+    	$sqlUsers = 'SELECT * FROM '.$this->con->pfx.'usercats WHERE category_id='.$parentid;
+    	$users = new Recordset();
+    	$users = $this->con->select($sqlUsers);
+    	while (!$users->EOF()) {
+    		//$sql_site='SELECT website_id FROM '.$this->con->pfx.'categories WHERE category_id='. $category;
+    		$sql='INSERT INTO '.$this->con->pfx.'usercats SET
+    				user_id='. $users->f('user_id') .',
+    				website_id = (' . $users->f('website_id') .'),
+    				category_id='. $category;
+    		$this->con->execute($sql);
+    		$users->MoveNext();
+    	}
+    	 
+    }
+    
+    
+    function delUserCats($user_id=0)  {
+    	// on supprime tous les enregistrement
+    	$sql='DELETE FROM '.$this->con->pfx.'usercats WHERE user_id='. $user_id;
+    	return $this->con->execute($sql);
+    }
+    
     function delUser($id)
     {
         if (false === ($user = $this->getUserById($id))) {
+        	$this->setError(__('Data does not exist!'));
             return false;
         }
         $res = $user->getListResources();
@@ -610,6 +841,19 @@ class Manager extends BasicManager
         return true;
 
     }
+    
+    function delGroup($id) {
+    	if (false === ($user = $this->getUserGroup($id))) {
+    		$this->setError(__('Data does not exist!'));
+    		return false;
+    	}
+    	$delReq = 'DELETE FROM '.$this->con->pfx.'usergroups WHERE group_id = '.$id;
+    	if (!$this->con->execute($delReq)) {
+    		$this->setError('MySQL: '.$this->con->error(), 500);
+    		return false;
+    	}
+    	return true;
+    }
 
 
     /**
@@ -619,7 +863,7 @@ class Manager extends BasicManager
      * log of the creation is set in &$log_new_site. 
      * The log is pure HTML ready for display.
      */
-    function saveSite($id, $name, $description, $sitelang, $website_address, $website_path, $xmedia_name, $support_comments, $status_comments, &$log_new_site, $force_new_id='')
+    function saveSite($id, $name, $description, $sitelang, $website_address, $website_path, $xmedia_name, $support_comments, $status_comments, $value_comment, &$log_new_site, $force_new_id='',$image_new_site='')
     {
         include_once dirname(__FILE__).'/../extinc/class.configfile.php';
         include_once dirname(__FILE__).'/class.checklist.php';
@@ -754,6 +998,7 @@ class Manager extends BasicManager
         $cfg->editVar('lang',          (string) $sitelang);
         $cfg->editVar('comment_support', (int) $support_comments);
         $cfg->editVar('comment_default_status', (int) $status_comments);
+        $cfg->editVar('comment_default_value', (int) $value_comment);
         if (!$cfg->saveFile()) {
             $this->setError(__('Error: Impossible to create the configuration file.') , 500);
             return false;
@@ -774,6 +1019,7 @@ class Manager extends BasicManager
         $insReq .= 'website_xmedia_reurl   = \''.$this->con->escapeStr($xmedia_reurl).'\', ';
         $insReq .= 'website_xmedia_path   = \''.$this->con->escapeStr($xmedia_path).'\', ';
         $insReq .= 'website_description  = \''.$this->con->escapeStr($description).'\' ';
+        //$insReq .= 'website_img = \''.$this->con->escapeStr($image_new_site).'\' ';
         if ($update) {
             $insReq .= 'WHERE website_id =\''.$this->con->escapeStr($id).'\'';
         }
@@ -828,14 +1074,19 @@ class Manager extends BasicManager
                 return false;
             }
 
-            // Add 2 default subtypes
+            // Add 4 default subtypes
             if (false === $this->saveType('', 'articles', __('Article'), 'resource_article.php', 3600, '', '', $id)) {
                 return false;
             }
             if (false === $this->saveType('', 'news', __('News'), 'resource_news.php', 3600, '1', '', $id)) {
                 return false;
             }
-                        
+            if (false === $this->saveType('', 'events', __('Events'), 'resource_events.php', 3600, '1', '', $id)) {
+            	return false;
+            }
+            if (false === $this->saveType('', 'rsslinks', __('Rss links'), 'resource_rsslinks.php', 3600, '1', '', $id)) {
+            	return false;
+            }            
             // All the database related work is done. The creation is a 
             // success, we may have error to copy the 
             // files, but they are not erros, only "warnings".
@@ -851,11 +1102,11 @@ class Manager extends BasicManager
             $f = new files();
             $checklist = new checklist();
             // 1- Create the xmedia/thumb folder
+            // not necessary with elfinder ...
             $checklist->addTest('thumb-folder', files::is_success($f->createfolder($xmedia_path.'/thumb', 0777)) ? 1 : 2,
                                 sprintf(__('Thumbnail folder %s created successfully.'), files::real_path($xmedia_path.'/thumb')),
                                 '' /* no error */,
                                 sprintf(__('Unable to create the thumbnail folder %s.'), $xmedia_path.'/thumb'));
-
             // 2- Create the xmedia/theme/default folder
             $checklist->addTest('theme-folder', (files::is_success($f->createfolder($xmedia_path.'/theme', 0777)) && files::is_success($f->createfolder($xmedia_path.'/theme/default', 0777))) ? 1 : 2,
                                 sprintf(__('Theme folder %s created successfully.'), files::real_path($xmedia_path.'/theme/default')),
@@ -984,6 +1235,18 @@ class Manager extends BasicManager
             $this->setError('MySQL: '.$this->con->error(), 500);
             return false;
         }
+        // VM delete data into tables subtypes and userprefs
+        $delReq = 'DELETE FROM '.$this->con->pfx.'subtypes WHERE website_id =\''.$this->con->escapeStr($id).'\'';
+        if (!$this->con->execute($delReq)) {
+        	$this->setError('MySQL: '.$this->con->error(), 500);
+        	return false;
+        }
+        $delReq = 'DELETE FROM '.$this->con->pfx.'userprefs WHERE website_id =\''.$this->con->escapeStr($id).'\'';
+        if (!$this->con->execute($delReq)) {
+        	$this->setError('MySQL: '.$this->con->error(), 500);
+        	return false;
+        }
+        
         @unlink(dirname(__FILE__).'/../conf/configweb_'.$id.'.php');
         return true;
     }
@@ -1035,6 +1298,7 @@ class Manager extends BasicManager
 
     }
 
+	
     /* ====================================================================== *
      *                                                                        *
      *                        Category Management                             *
@@ -1075,6 +1339,15 @@ class Manager extends BasicManager
         }
         if (false === $cat->commit()) {
             return false;
+        } else {
+        	// Send a mail to notify what's adding
+        	//@TODO : Envoil mail à la création 
+        	//if (PX_CONFIG_MAIL_ON_CREATE == true) 
+        	//	$this->sendEmail('Ajout/Modification d\'une catégorie', 'Catégorie : '.$cat->f('category_id') , $cat->f('website_id'),PX_CONFIG_MAIL_LEVEL);
+        }
+        if($cat->f('has_xmedia_folder')==1){
+        	if (!$this->checkMediaFolder(config::f('xmedia_root').$cat->f('category_path')) )
+        		return false;
         }
         $this->triggerMassUpdate();
         return $cat->f('category_id');
@@ -1125,7 +1398,52 @@ class Manager extends BasicManager
         }
         return true;
     }
-
+    
+    
+    /* ====================================================================== *
+     *                                                                        *
+     *                         Html Validator                                 *
+     *                                                                        *
+     * ====================================================================== *
+     */
+ 	 function htmlIsValid($content) {
+ 	 	// @TODO Ajout gestion du message de retour 	
+ 	 	return true;
+ 	 	$rep = false;
+ 	 	$validator = new Services_W3C_HTMLValidator();
+ 	 	$docType = '<!DOCTYPE html >';
+ 	 	$enteteDoc = '<html><head><title>Analyse Contenu</title></head><body>';
+ 	 	$basDoc = '</body></html>';
+ 	 	$content = $docType.$enteteDoc."\n".$content."\n".$basDoc;
+ 	 	$result = $validator->validateFragment($content); 	//@TODO utf8_encode ?
+ 	 	if (!$result) {
+ 	 		// webservice non dispo
+ 	 		$this->setError(__('Error : webService HTMLValidator doesn\'t work !'),400);
+ 	 		$this->setMessage(__('Error : webService HTMLValidator doesn\'t work !'));
+ 	 		// retour ok car il ne faut pas bloquer la sauvegarde
+ 	 		$rep = true;
+ 	 	} else {
+ 	 		if ($result->isValid()) {
+ 	 			// le html est valide.
+ 	 			$rep = true;
+ 	 		} else {
+ 	 			// html invalide
+ 	 			$msg = '<div>'.$content.'</div>';
+ 	 			$msg .= '<div><ul>';
+ 	 			foreach($result->errors as $error)  {
+ 	 				$msg .=  '<li><span>ligne '.$error->line.' col'.$error->col.'</span>&nbsp;:&nbsp;';
+ 	 				$msg .= '<span>';
+ 	 				if (!empty($error->message)) $msg .= $error->message;
+ 	 				$msg .= '<br/>'.$error->explanation.'</span></li>';
+ 	 			}
+ 	 			$msg .= '</ul></div>';
+ 	 			$this->setPopupMessage($msg);
+ 	 			$rep = false;
+ 	 		}
+ 	 	}
+ 	 	return $rep;
+ 	 }
+    
     /* ====================================================================== *
      *                                                                        *
      *                          News Management                               *
@@ -1145,6 +1463,7 @@ class Manager extends BasicManager
         if (true !== $this->check($news)) {
             return false;
         }
+        
         if (true !== $this->asRightToEdit($news)) {
             $this->setError(__('Error: You do not have the rights to edit this news.'), 400);
             return false;
@@ -1183,13 +1502,131 @@ class Manager extends BasicManager
         return true;    
     }
 
+    
 
+    /* ====================================================================== *
+     *                                                                        *
+     *                          Rss links Management                               *
+     *                                                                        *
+     * ====================================================================== *
+     */
+    
+    /**
+     * Save a rss link.
+     *
+     * @param &object Rsslink object
+     * @return mixed Id of the rss link or false
+     */
+    function saveRsslink(&$rsslinks)
+    {
+        // first check the integrity of the news
+        if (true !== $this->check($rsslinks)) {
+            return false;
+        }
+        
+        if (true !== $this->asRightToEdit($rsslinks)) {
+            $this->setError(__('Error: You do not have the rights to edit this rss link.'), 400);
+            return false;
+        }
+        if (false === $rsslinks->commit()) {
+            $this->bulkSetError($rsslinks->error());
+            return false;
+        }
+        $this->indexResource($rsslinks);
+        $this->triggerMassUpdate();
+        Hook::run('onRsslinksSave', array('rsslinks' => &$rsslinks, 'm' => &$m));
+        return $rsslinks->f('resource_id');
+    }
+
+    /**
+     * Remove a rss link from the database.
+     *
+     * @param &object Rsslinks object
+     * @return bool Success
+     */
+    function delRsslink(&$rsslinks)
+    {
+        if (true !== $this->asRightToEdit($rsslinks)) {
+            $this->setError(__('Error: You do not have the rights to edit this rss link.'), 400);
+            return false;
+        }
+
+        $this->indexRemove($rsslinks);
+
+        if (false === $rsslinks->remove()) {
+            $this->bulkSetError($rsslinks->error());
+            return false;
+        }
+
+        $this->triggerMassUpdate();
+        return true;    
+    }
+    
+    /* ====================================================================== *
+     *                                                                        *
+     *                          Events Management                               *
+     *                                                                        *
+     * ====================================================================== *
+     */
+    
+    /**
+     * Save a event.
+     *
+     * @param &object Events object
+     * @return mixed Id of the event or false
+     */
+    function saveEvents(&$events)
+    {
+        // first check the integrity of the events
+        if (true !== $this->check($events)) {
+        	
+            return false;
+        }
+        if (true !== $this->asRightToEdit($events)) {
+            $this->setError(__('Error: You do not have the rights to edit this events.'), 400);
+            return false;
+        }
+        if (false === $events->commit()) {
+            $this->bulkSetError($events->error());
+            
+            return false;
+        }
+        $this->indexResource($events);
+        $this->triggerMassUpdate();
+        Hook::run('onEventsSave', array('events' => &$events, 'm' => &$m));
+        return $events->f('resource_id');
+    }
+
+    /**
+     * Remove a event from the database.
+     *
+     * @param &object Events object
+     * @return bool Success
+     */
+    function delEvents(&$events)
+    {
+        if (true !== $this->asRightToEdit($events)) {
+            $this->setError(__('Error: You do not have the rights to edit this events.'), 400);
+            return false;
+        }
+
+        $this->indexRemove($events);
+
+        if (false === $events->remove()) {
+            $this->bulkSetError($events->error());
+            return false;
+        }
+
+        $this->triggerMassUpdate();
+        return true;    
+    }
     /* ====================================================================== *
      *                                                                        *
      *                          Article Management                            *
      *                                                                        *
      * ====================================================================== *
      */
+
 
 
     /**
@@ -1300,6 +1737,8 @@ class Manager extends BasicManager
         if (false === $ar->removePage()) {
             $this->bulkSetError($ar->error());
             return false;
+        } else {
+        	$ar->setPageNumber();
         }
         $this->indexResource($ar);
         $this->triggerMassUpdate();
@@ -1567,7 +2006,7 @@ class Manager extends BasicManager
         $to_emails = array();
         $users = $this->getUsers();
         while(!$users->EOF()) {
-            if ($users->getWebsiteLevel($website >= $level)) {
+            if ($users->getWebsiteLevel($website) >= $level) {
                 $to_emails[] = $users->f('user_email');
             }
             $users->moveNext();			
@@ -1578,6 +2017,18 @@ class Manager extends BasicManager
             $email->addMessage($content, 'text/plain');
             $email->sendMail(); 
         }
+    }
+    
+    function checkMediaFolder($path) {
+    	if (!file_exists($path)) {
+    		//$this->setError('création dossier '.$path);
+    		if (files::createfolder($path) != PX_FILES_SUCCESS) {
+    			$this->setError('Erreur de création du dossier '.$path);
+    			return false;
+    		} else {
+    			return true;
+    		}
+    	}
     }
 }
 ?>

@@ -21,7 +21,7 @@
 function catChangePath(idArray)
 {
     if (document.formPost.c_path.value == '') {
-        document.formPost.c_path.value = idArray[document.formPost.c_parentid.value];
+        document.formPost.c_path.value = idArray[document.formPost.cat_id.value];
     }
 }
 
@@ -32,7 +32,7 @@ function setUrl(titleField, urlField, param, param2)
     if (param == 'cat') {
         if (document.getElementById('quirk_category_path').value == 0) {
             urlFromTitle = titleToUrl(title.value,'cat');
-            url.value = param2[document.formPost.c_parentid.value] + urlFromTitle + '/';
+            url.value = param2[document.formPost.cat_id.value] + urlFromTitle + '/';
         }
     } else {
         if (param2 == 0) {
@@ -122,6 +122,30 @@ function openCloseSpan(id,mode)
 	}
         return false;
 }
+
+
+function modifDateRefererTo(Referer,dt_field) {
+	
+	if(document.getElementById) {
+		element = document.getElementById(Referer);
+		fieldDate = document.getElementById(dt_field);
+	} else if(document.all) {
+		element = document.all[Referer];
+		fieldDate = document.all[dt_field];
+	} else return;
+	
+	statut = element.checked;
+	
+	today = new Date();
+	if (statut == false) {
+	    mois = '0'+ (today.getMonth()+1);
+	    mois = mois.substr(mois.length-2);
+	    fieldDate.value = today.getFullYear().toString()+mois+today.getDate().toString();
+	} else  {
+		fieldDate.value = '99991231';
+	}
+}
+
 
 function openCloseBlockIf(id, idsource, cond, mode, modeelse)
 {
@@ -276,4 +300,38 @@ function isReady(name, text) {
     return false;
     }
 return true;
+}
+
+function isDateGreater(first, second, text) {
+	if(document.getElementById) {
+		if (document.getElementById(first)) {
+			firstElt = ''+document.getElementById(first).value
+				+document.getElementById(first+'_h').value
+				+document.getElementById(first+'_i').value
+				+document.getElementById(first+'_s').value;
+	        secondElt = ''+document.getElementById(second).value
+	        	+document.getElementById(second+'_h').value
+	        	+document.getElementById(second+'_i').value
+	        	+document.getElementById(second+'_s').value;
+		}
+	} else if(document.all) {
+		if (document.all[first])  {
+			firstElt = ''+document.all[first].value
+				+document.all[first+'_h'].value
+				+document.all[first+'_i'].value
+				+document.all[first+'_s'].value;
+	        secondElt = ''+document.all[second].value
+	        	+document.all[second+'_h'].value;
+	        	+document.all[second+'_i'].value;
+	        	+document.all[second+'_s'].value;
+		}
+	} else {
+		alert('Tools::isGreater : Erreur de référence !');
+		return false;
+	}
+	//alert(firstElt+'-'+secondElt);
+	if (firstElt>secondElt) {
+		alert(text);
+		return false;
+	} else return true;
 }

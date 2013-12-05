@@ -23,12 +23,15 @@
 
 require_once dirname(__FILE__).'/class.l10n.php';
 
+define('SEARCH_LOG', dirname(dirname(dirname(__FILE__))). '/logs/log_search.log');
+
 class Search extends CError
 {
 
     var $websiteId = ''; //Website id
     var $con = null; //DB connection
-
+	var $log = array(); // info for log file
+	
     /**
     Constructor
 
@@ -40,6 +43,8 @@ class Search extends CError
         $this->con = $db;
         $this->websiteId = $websiteId;
         return true;
+        $text = date::stamp() .' - Init Search class'.chr(10);
+		//file_put(SEARCH_LOG, $text);
     }
 
     /**
@@ -52,12 +57,29 @@ class Search extends CError
     */
     function index($string, $id, $type='html')
     {
-        if ('html' == $type) {
+    	/*
+        $text = date::stamp() .' - Search::index (string initial)'.chr(10);
+        $text .= $string .chr(10);
+		file_put(SEARCH_LOG, $text);
+		*/
+    	/*
+		if ('html' == $type) {
             //To have an accurate number of occurences
             $string = $this->balance_string($string);
         }
+        */
         $string = $this->clean_string($string);
-        $words  = $this->explode_in_words($string);
+        /*
+        $text = date::stamp() .' - Search::index (string)'.chr(10);
+        $text .= $string .chr(10);
+		file_put(SEARCH_LOG, $text);
+        */
+        $words  = $this->explode_in_words($string, true);
+        /*
+        $text = date::stamp() .' - Search::index (words)'.chr(10);
+        $text .= print_r($words,true).chr(10);
+		file_put(SEARCH_LOG, $text);
+		*/
         return $this->save_words($id, $words);
     }
 
@@ -85,9 +107,9 @@ class Search extends CError
      * @param bool Remove the small words and numerical only (true)
      * @return array Associative array, key: word, value: occurence
      */
-    function explode_in_words($string, $remove=true)
+    public static function explode_in_words($string, $remove=true)
     {
-        return Search::tokenize($string);
+        return Search::tokenize($string,false,config::f('search_min_size'));
     }
 
     /**
@@ -97,7 +119,7 @@ class Search extends CError
      * @param array Words and occurences
      * @return bool Success
      */
-    function save_words($id, $words)
+    public function save_words($id, $words)
     {
         //save the words in the db
         return $this->db_save_words($id, $words);
@@ -111,7 +133,7 @@ class Search extends CError
      * @param array words
      * @return bool Success
      */
-    function db_save_words($id, $words)
+    public function db_save_words($id, $words)
     {
         include_once dirname(__FILE__).'/lib.utils.php';
 
@@ -224,7 +246,7 @@ class Search extends CError
      * @param string Resource id
      * @return bool Succes
      */
-    function remove_from_index($id)
+    public function remove_from_index($id)
     {
         // Remove the previous indexation of the resource
         $req = 'DELETE FROM '.$this->con->pfx.'searchocc WHERE resource_id=\''
@@ -244,7 +266,7 @@ class Search extends CError
      *    
      * @return int Number of word removed or false
      */
-    function clean_index()
+    public function clean_index()
     {
         //Get all the word ids.
         $i = 0;
@@ -284,10 +306,12 @@ class Search extends CError
      * the complete search query.
      *    
      * @param string Query string sent by the user
+     * @param boolean to spécify if all words must be founded
      * @return string SQL basic query string
      */
-    function create_search_query_string($query)
+    function create_search_query_string($query, $isLuckySearch = true, $type ='')
     {
+
         $query = $this->clean_string($query);
         $words = $this->explode_in_words($query, false);
         $kw = array();
@@ -301,6 +325,13 @@ class Search extends CError
         if (strlen($orstring) == 0) $orstring = '1=0';
         $sql  = 'SELECT '.$this->con->pfx.'resources.*, '
             .$this->con->pfx.'categories.*, COUNT(*) AS total, '."\n";
+            
+        if ($type == 'events' || $type == 'all')  {
+        	$sql .= $this->con->pfx.'events.*, ';
+        } 
+        if ($type == 'news' || $type == 'all')  {
+        	$sql .= $this->con->pfx.'news.*, ';
+        }
         $sql .= 'SUM('.$this->con->pfx.'searchocc.occ) AS score '."\n";
         $sql .= 'FROM '.$this->con->pfx.'searchocc'."\n";
         $sql .= 'LEFT JOIN '.$this->con->pfx.'searchwords ON '
@@ -315,15 +346,29 @@ class Search extends CError
         $sql .= 'LEFT JOIN '.$this->con->pfx.'categories ON '
             .$this->con->pfx.'categoryasso.category_id='.$this->con->pfx
             .'categories.category_id '."\n";
+            
+        if ($type == 'news' || $type == 'all') {
+            $sql .= ' LEFT JOIN '.$this->con->pfx.'news ON '.$this->con->pfx.'news.resource_id='.$this->con->pfx.'resources.resource_id ';
+        } 
+        if ($type == 'events' || $type == 'all')  {
+            $sql .= ' LEFT JOIN '.$this->con->pfx.'events ON '.$this->con->pfx.'events.resource_id='.$this->con->pfx.'resources.resource_id ';
+      	} 
+            
         $sql .= 'WHERE ('.$orstring.')'."\n";
         $sql .= 'AND '.$this->con->pfx.'categoryasso.categoryasso_type=\''
             .PX_RESOURCE_CATEGORY_MAIN.'\' '."\n";
         $sql .= 'AND '.$this->con->pfx.'resources.website_id=\''
             .$this->websiteId.'\' %s '."\n";
         $sql .= 'GROUP BY '.$this->con->pfx
-            .'searchocc.resource_id HAVING total=\''.$nbwords
+            .'searchocc.resource_id ';
+           
+        if ($isLuckySearch == false ) {
+            $sql .= 'HAVING total=\''.$nbwords
             .'\' ORDER BY total DESC, score DESC';
-
+        } else {
+            $sql .= 'HAVING total>=\''.round($nbwords/3,0)
+            .'\' ORDER BY total DESC, score DESC';
+        }
         return $sql;
     }
     
@@ -333,7 +378,7 @@ class Search extends CError
      * @param string Website to look for, if no set, all
      * @return mixed RecordSet or false if errors
      */
-    function get_indexed_resources_stats($website='')
+    public function get_indexed_resources_stats($website='')
     {
         $website = trim($website);
         $extra = '';
@@ -367,7 +412,7 @@ class Search extends CError
      * @param bool Remove the accents (True)
      * @return array Word and number of occurences.
      */
-    function tokenize($string, $remove_accents=True)
+    public static function tokenize($string, $remove_accents=True, $min_length = false)
     {
         if ($remove_accents) {
             $string = Search::removeAccents($string);
@@ -404,13 +449,25 @@ class Search extends CError
             //will not be called if regexp failure
             $string = $asia;
         }
+
         $arr = preg_split('/\s+/', $string, -1, PREG_SPLIT_NO_EMPTY);
+
         foreach ($arr as $w) {
             $w = trim($w);
-            if (array_key_exists($w, $words)) {
-                $words[$w]++;
+            if ($min_length !== false) {
+            	if (mb_strlen($w,'UTF-8') >= $min_length) {
+		            if (array_key_exists($w, $words)) {
+		                $words[$w]++;
+		            } else {
+		                $words[$w] = 1;
+		            }
+            	}
             } else {
-                $words[$w] = 1;
+	            if (array_key_exists($w, $words)) {
+	                $words[$w]++;
+	            } else {
+	                $words[$w] = 1;
+	            }
             }
         }
         return $words;
@@ -425,15 +482,47 @@ class Search extends CError
      * @param string String.
      * @return string Cleaned lowercase string.
      */
-    function clean_string($string)
+    public static function clean_string($string)
     {
-        $string = Search::html_entity_decode_utf8($string);
+    	/*
+        $text = date::stamp() .' - Search::clean_string (string initial)'.chr(10);
+        $text .= $string .chr(10);
+		file_put(SEARCH_LOG, $text);
+    	*/
+		$string = mb_strtolower($string,'UTF-8');
+		/*
+        $text = date::stamp() .' - Search::clean_string (string initial)'.chr(10);
+        $text .= $string .chr(10);
+		file_put(SEARCH_LOG, $text);
+    	*/
+    	$string = html_entity_decode($string,ENT_QUOTES,'UTF-8');
+    	
+        //$string = Search::html_entity_decode_utf8($string);
+        /*
+        $text = date::stamp() .' - Search::clean_string (html_entity_decode)'.chr(10);
+        $text .= $string .chr(10);
+		file_put(SEARCH_LOG, $text);
+    	*/    	
+    	$replace = array('&nbsp;','&eacute;','&grave;','&quot;','&lt;','&gt;', 'ndash', 'xmedia', 'mailto:', '––', '...');
+    	$string = str_replace($replace,' ',$string);
+		/*
+        $text = date::stamp() .' - Search::clean_string (str_replace)'.chr(10);
+        $text .= $string .chr(10);
+		file_put(SEARCH_LOG, $text);
+    	*/
+    	$string = htmlspecialchars_decode($string);
+    	/*
+        $text = date::stamp() .' - Search::clean_string (htmlspecialchars_decode)'.chr(10);
+        $text .= $string .chr(10);
+		file_put(SEARCH_LOG, $text);
+		*/        
         $string = str_replace('<?php', '', $string);
+        $string = str_replace('?>', '', $string);
+		$string = str_replace('%', '', $string);
         $string = strip_tags($string);
-        $string = strtr($string, "\r\n\t", '   ');
-        $string = strtr($string, 
-                        '.<>,;:(){}[]\\|*@!?^_=/\'~`%$#"',
-                        '                               ');
+        $string = strtr($string, "\r\n\t", ' ');
+        $string = strtr($string, '.&<>,;:(){}[]\\|*!?^_=/\'~`%$#"', ' ');
+        
         return mb_strtolower($string, 'UTF-8');
     }
 
@@ -446,7 +535,7 @@ class Search extends CError
      * @param string Lowercased string in utf-8.
      * @return string String with some of the accents removed.
      */
-    function removeAccents($string)
+    public static function removeAccents($string)
     {
         $map = array(
                      'à'=>'a', 'ô'=>'o', 'ď'=>'d', 'ḟ'=>'f', 'ë'=>'e',
@@ -488,7 +577,7 @@ class Search extends CError
      * @param string Server query string
      * @return int Success code
      */
-    function action($query)
+    public static function action($query)
     {
         $l10n = new l10n(config::f('lang'));
         $l10n->loadTemplate(config::f('lang'), config::f('theme_id'));
@@ -503,8 +592,9 @@ class Search extends CError
         // Parse query string to find the matching article
         $con =& pxDBConnect();
         $s = new Search($con, config::f('website_id'));
-        config::setVar('query_string', Search::parseQueryString($query));
 
+        config::setVar('query_string', Search::parseQueryString($query));
+        
         $sql = $s->create_search_query_string(config::f('query_string'));
         $extra = ' AND '.$con->pfx.'resources.publicationdate <= '
             .date::stamp().' AND '.$con->pfx.'resources.enddate >= '
@@ -515,6 +605,8 @@ class Search extends CError
         if (($res = $con->select($sql, 'ResourceSet')) === false) {
             $GLOBALS['_PX_render']['error']->setError('MySQL: '
                                                       .$con->error(), 500);
+            
+            config::setVar('query_string_origin', Search::parseQueryString($query));
             return 404;
         }
 
@@ -534,7 +626,7 @@ class Search extends CError
      * @param string Query string
      * @return string Clean query string
      */
-    function parseQueryString($query)
+    public static function parseQueryString($query)
     {
         $clean = '';
         if (preg_match('#^/search/(.*)$#i', $query, $match)) {
@@ -579,7 +671,7 @@ class Search extends CError
      * Returns the utf string corresponding to the unicode value (from
      * php.net, courtesy - romans@void.lv)
      */
-    function code2utf($num)
+    public static function code2utf($num)
     {
         if ($num < 128) return chr($num);
         if ($num < 2048) return chr(($num >> 6) + 192) . chr(($num & 63) + 128);

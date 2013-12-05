@@ -2,6 +2,52 @@
 # (C) 2004 Loïc d'Anterroches, Cédric Arrabie
 # (C) 2007-2008 Joël Bauer
 
+# Traduction des dates
+###########################################################################
+;Monday
+Lundi
+
+;Tuesday
+Mardi
+
+;Wednesday
+Mercredi
+
+;Thursday
+Jeudi
+;Friday
+Vendredi
+;Saturday
+Samedi
+;Sunday
+Dimanche
+
+;January
+Janvier
+;February
+Février
+;March
+Mars
+;April
+Avril
+;May
+Mai
+;June
+Juin
+;July
+Juillet
+;August
+Août
+
+;September
+Septembre
+;October
+Octobre
+;November
+Novembre
+;December
+Décembre
+
 ;There is an error with your login or your password.
 Il y a une erreur dans votre identifiant ou votre mot de passe.
 
@@ -24,6 +70,9 @@ Brèves
 
 ;Articles
 Articles
+
+;Rss
+Flux Rss
 
 ;Files or images
 Fichiers ou images
@@ -67,6 +116,9 @@ Tout masquer
 ;show/hide
 Afficher/masquer
 
+;Show/hide
+Afficher/masquer
+
 ;by
 par
 
@@ -76,14 +128,26 @@ par
 ;in
 dans
 
+;on 
+le
+
 ;Y/m/d at H:i:s
 d/m/Y à H:i:s
+
+;%Y-%m-%d at %H:%M
+%d-%m-%Y à %H:%M
 
 ;Search:
 Rechercher&nbsp;:
 
 ;edit
 Éditer
+
+;copy
+Copier
+
+;Copy of
+Copie de
 
 ;visualize
 Visualiser
@@ -100,6 +164,12 @@ Liste des brèves
 ;See the news
 Voir la brève
 
+;Rsslink
+Lien Rss
+
+;Rsslinks
+Liens Rss
+
 ;New news
 Nouvelle brève
 
@@ -108,6 +178,31 @@ Erreur&nbsp;: La brève demandée n'est pas disponible.
 
 ;Error: You do not have the rights to edit this news.
 Erreur&nbsp;: Vous n'avez pas l'autorisation d'éditer cette brève.
+
+;Rss links list
+Liste des flux Rss
+
+;New rss link
+Nouveau flux Rss
+
+;See the rss link
+Voir le flux Rss
+
+;Content of the rss link
+Contenu du lien Rss
+
+
+;Are you sure you want to delete this rss link?
+Souhaitez-vous vraiment supprimer ce lien Rss&nbsp;?
+
+;The rss link was successfully deleted.
+Le lien Rss a bien été supprimé.
+
+;No rss links.
+Pas de lien Rss.
+
+;Search for a rss link item:
+Rechercher dans un lien Rss :
 
 ;Category
 Catégorie
@@ -120,6 +215,9 @@ Catégories
 
 ;Hidden category
 Catégorie fantôme
+
+;Allowed categories
+Catégories autorisées
 
 ;shrink textarea
 Diminuer la taille de l'éditeur [-]
@@ -192,6 +290,11 @@ Ajouter dans une autre catégorie
 
 ;Add
 Ajouter
+
+# ;FilRouge
+# Afficher dans la zone fil rouge
+#;StatusFilRouge
+#Apparaît dans la zone fil rouge
 
 # Submit buttons (to modify the accesskeys, see the accesskey section below)
 ############################################################################
@@ -367,6 +470,9 @@ Catégorie parente&nbsp;:
 ;Template:
 Gabarit&nbsp;:
 
+;is hidden from the parent category except for admin
+est invisible depuis la catégorie parente sauf pour les admin
+
 ;Cache time in seconds:
 Durée de mise en cache en secondes&nbsp;:
 
@@ -514,6 +620,9 @@ Attention, vous allez modifier votre profil. Vous serez déconnecté après les 
 ;Identity
 Identité
 
+;User
+Utilisateur
+
 ;Levels
 Niveaux
 
@@ -540,6 +649,39 @@ Rédacteur simple
 
 ;No access
 Aucun accès
+
+;Users groups
+Groupes d'utilisateurs
+
+;Users group
+Groupe d'utilisateurs
+
+;Users Group List
+Liste des groupes d'utilisateurs
+
+;Edit
+Modifier
+
+;Edit the group
+Modifier le groupe
+
+;The group has been successfully saved
+Le groupe a été enregistré
+
+;The group successfully deleted.
+Le groupe a été supprimé.
+
+;ID
+N°
+
+;Group name
+Nom du groupe
+
+;Action
+Action
+
+;Add a new group
+Ajouter un nouveau groupe
 
 ;Are you sure you want to delete this author?
 Souhaitez-vous vraiment supprimer ce rédacteur&nbsp;?
@@ -730,8 +872,14 @@ La durée de mise en cache doit être un nombre entier.
 ;Types of news
 Types de brèves
 
-;Type of articles
+;Types of articles
 Types d'articles
+
+;Types of events
+Types d'évènements
+
+;Types of rsslinks
+Type de liens RSS
 
 ;Are you sure you want to delete this type of resource?
 Souhaitez-vous vraiment supprimer ce type de ressource&nbsp;?
@@ -744,6 +892,9 @@ Type de ressource supprimé avec succès.
 
 ;You need to <a href="%s">add 2 types of resource</a>, one for the articles and one for the news.
 Vous devez <a href="%s">ajouter deux types de ressource</a>, un pour les articles et un pour les brèves.
+
+;You need to <a href="%s">add 4 types of resource</a>, one for the articles, one for the news, one for the events and on for the rss links.
+Vous devez <a href="%s">ajouter 4 types de ressource</a>, un pour les articles, un pour les brèves, un pour les évènements et un pour les liens RSS.
 
 ;Manager Themes
 Thèmes du Manager
@@ -808,8 +959,17 @@ Chemin d'accès côté serveur. Par exemple <em>/home/login/www</em> ou <em>c:/h
 ;Name of the file and image folder:
 Nom du dossier contenant les fichiers et les images&nbsp;:
 
+;Name of the website image:
+Nom de l'image du site&nbsp;:
+
 ;For example put <em>xmedia</em> or <em>documents</em>.
 Saisir, par exemple, <em>xmedia</em> ou <em>documents</em>.
+
+;For example put <em>logo_site.png</em>.
+Saisir par exemple <em>logo_site.png</em>.
+
+;For example put <em>Login</em> or <em>Name</em>.
+Saisir, par exemple, <em>Identifiant</em> ou <em>Nom</em>.
 
 ;If all the informations you provided are valid, the system will copy the required files in the right folders. The complete log of those files will be shown to you. No file already available on the system will be overwritten.
 Si toutes les informations que vous avez fournies sont correctes, le système copiera les fichiers requis dans les bons dossiers. Un compte rendu d'installation sera affiché en fin de procédure. Aucun fichier déjà présent sur le système ne sera modifié ou remplacé.
@@ -949,8 +1109,8 @@ Dossier parent
 ;Go one folder up.
 Remonter d'un dossier
 
-;You need now to add the first page of the article. After adding the first page, you can <a href="%s">validate and put online the article</a>.
-Vous devez à présent ajouter le premier chapitre de l'article. Après avoir ajouté ce chapitre, vous pourrez <a href="%s">valider et mettre en ligne l'article</a>.
+;You need now to add the first page of the article. After adding the first page, you can validate and put online the article.
+Vous devez à présent ajouter le premier chapitre de l'article. Après avoir ajouté ce chapitre, vous pourrez valider et mettre en ligne l'article.
 
 ;The comment was successfully deleted.
 Le commentaire a été supprimé avec succès.
@@ -1210,6 +1370,9 @@ Choisir pour chaque ressource
 ;Default status of the comments:
 État par défaut des commentaires&nbsp;:
 
+;Default value for the comment status:
+Statut des commentaires par défaut&nbsp;:
+
 ;Need validation
 Validation requise
 
@@ -1322,6 +1485,259 @@ x
 ;d
 p
 
+
+# Ajouts depuis le 01/12/2009
+;Event
+Evènement
+
+;Events
+Evènements
+
+;Events list
+Liste des évènements
+
+;New event
+Nouvel évènement
+
+;See the events
+Voir les évènements
+
+;See the event
+Voir l'évènement
+
+;Search for a event item:
+Rechercher un évènement:
+
+;Content of the events
+Description de l'évènement
+
+;Short Content
+Description courte
+
+;Event start date
+Début de l'évènement
+
+;Do not use an end date.
+Ne pas définir de date de fin
+
+;Event end date
+Fin de l'évènement
+
+;Are you sure you want to delete this event?
+Etes vous sur de vouloir supprimer cet évènement ?
+
+;The event was successfully saved
+L'évènement a bien été enregistré
+
+;The event was successfully saved.
+L'évènement a bien été enregistré
+
+;The event was successfully deleted.
+L'évènement a bien été supprimé.
+
+;Manager theme based on the Crystal Clear theme
+Manager theme based on the Crystal Clear theme
+
+;Crystal theme
+Crystal theme
+
+;Manager theme based on the Tango project icons for PLUME CMS 1.2.3.
+Manager theme based on the Tango project icons for PLUME CMS 1.2.3.
+
+;crystal
+crystal
+
+;PMTango theme
+PMTango theme
+
+;pmtango
+pmtango
+
+;dotclear
+dotclear
+
+;default
+default
+
+;Black theme for Plume CMS version 1.2.3.
+Black theme for Plume CMS version 1.2.3.
+
+;Black
+Black
+
+;black
+black
+
+;blue
+blue
+
+;January
+Janvier
+
+;February
+Février
+
+;March
+Mars
+;April
+Avril
+;May
+Mai
+;June
+Juin
+;July
+Juillet
+;August
+Août
+;September
+Septembre
+;October
+Octobre
+;November
+Novembre
+;December
+Décembre
+
+
+;Go to the content
+Vers le contenu
+
+;Go to the menu
+Vers le menu
+
+;Sitemap
+Carte du site
+
+;Feeds
+Flux RSS
+
+;Search
+Recherche
+;OK
+OK
+
+;Links
+Liens
+
+;In short
+En bref
+;No resources
+Pas de ressource
+;Recent articles
+Articles récents
+;Read
+Lire
+;%Y-%m-%d at %H:%M
+%d/%m/%Y à %H:%M
+;, publisher of
+ , rédacteur de
+;Number of comments:
+Nombre de commentaires:
+
+;Recent news
+Brèves récentes
+
+;POWERED by
+GENERE par
+;Powered by PLUME CMS
+Généré par PLUME CMS
+
+;Logo of Plume CMS
+Logo de Plume CMS
+
+;DESIGN by
+Définit par
+;Design by Jojaba
+Définit par Jojoba
+
+;Jojaba
+Jojoba
+
+;Back to
+Retour vers
+
+;<div id="subcat"><h3>Subcategories</h3> %s</div>
+<div id="subcat"><h3>Sous-catégories</h3> %s</div>
+
+;1 resource
+1 resource
+
+;<strong>%s</strong> resources
+<strong>%s</strong> resources
+
+;in this category.
+dans cette catégorie
+
+;<p><a href="%s">Previous Page</a></p>
+<p><a href="%s">Page précédente</a></p>
+
+;<p><a href="%s">Next Page</a></p>
+<p><a href="%s">Page suivante</a></p>
+
+;In %s
+Dans %s
+
+;and
+et
+
+;or
+ou
+
+;Generate table
+Générer un tableau
+
+;Category name
+Nom de la catégorie
+
+;Managed your categories.
+Gérer vos catégories.
+
+;Add new tools to Plume's templates.
+Ajouter de nouveaux outils à Plume.
+
+;Box of Tools
+Boîte à Outils
+
+;Plugin Manager
+Gestionnaire des plugins
+
+;New users group
+Nouveau groupe d'utilisateurs
+
+;Apply filter
+Appliquer le filtre
+
+;reset the filter
+annuler le filtre
+;Reset the filter
+Annuler le filtre
+
+;alertcom
+alertcom
+
+;babel
+babel
+
+;bot
+bot
+;ecm
+ecm
+
+;.htaccess Manager
+Gestion htaccess
+
+;info
+info
+
+;searchmng
+gestion index
+
+;smart404
+Redir 404
+
+;teditor
+teditor
+
 ###############################
 # Strings for alertcom plugin #
 ###############################
@@ -1358,3 +1774,9 @@ publié
 
 ;Comment status:
 Type de commentaire :
+
+;is hidden from the parent category except for admin
+est masqué sauf pour l'admin
+
+;has it own media folder
+avec son dossier média

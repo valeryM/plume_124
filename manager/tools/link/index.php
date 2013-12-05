@@ -40,6 +40,7 @@
 $m->l10n->loadPlugin($m->user->lang, 'link');
 
 require dirname(__FILE__).'/class.link.php';
+$_REQUEST['header'] = link::insertHeader();
 Hook::register('onPrintHeaderManagerPage', 'Link', 'insertHeader');
 
 if (!isset($con)) {
@@ -57,6 +58,9 @@ if(!$link->isRunning()) {
 
 $action = !empty($_REQUEST['action']) ? $_REQUEST['action'] : NULL;
 $page = !empty($_REQUEST['page']) ? $_REQUEST['page'] : NULL;
+$l_zone = !empty($_REQUEST['l_zone']) ? $_REQUEST['l_zone'] : NULL;
+$l_style = !empty($_REQUEST['l_style']) ? $_REQUEST['l_style'] : NULL;
+
 $err = '';
 
 if ($action == 'install') {
@@ -73,48 +77,57 @@ elseif ($page == 'edit_cat' && !empty($_REQUEST['id']))
 }
 else
 {
-	$l_label = $l_title = $l_href = $l_lang = '';
+	$l_label = $l_title = $l_href = $l_lang = $l_cible = '';
+	// $l_zone = $l_style = '';
 	$c_title = '';
 	
 	# Ajout d'un lien
 	if ($action == 'add_link')
 	{
-		$l_label = trim($_POST['l_label']);
-		$l_title = trim($_POST['l_title']);
-		$l_href = trim($_POST['l_href']);
+		if (isset($_POST['l_label'])) $l_label = trim($_POST['l_label']);
+		if (isset($_POST['l_zone'])) $l_zone = trim($_POST['l_zone']);
+		if (isset($_POST['l_title'])) $l_title = trim($_POST['l_title']);
+		if (isset($_POST['l_href'])) $l_href = trim($_POST['l_href']);
 		$l_lang = trim($_POST['l_lang']);
 		$l_cat = trim($_POST['l_cat']);
+		$l_cible = trim($_POST['l_cible']);
+		$l_style = trim($_POST['l_style']);
 		
-		if (!$l_label || !$l_href)
+		if ($l_label!='' || $l_href!='')
 		{
 			$err = __('You must provide at least a label and an URL');
+		}
+		elseif ($l_zone!='') {
+			$err = __('You must provide a valid area');
 		}
 		elseif (!$link->isURI($l_href, array('domain_check' => false, 'allowed_schemes' => $link->protocols))) {
 			$err = __('You must provide a valid URL');
 		}
 		else
 		{
-			if ($link->addLink($l_label,$l_href,$l_title,$l_lang,$l_cat) == false) {
+			if ($link->addLink($l_zone, $l_label,$l_href,$l_cible, $l_title,$l_lang,$l_cat, $l_link) == false) {
 				$err = $link->con->error();
 			} else {
-				header('Location: '.$url);
+				header('Location: '.$url.'&l_zone='.$l_zone);
 				exit;
 			}
 		}
 	}
-	# Ajout d'une cat�gorie
+	# Ajout d'une catégorie
 	elseif ($action == 'add_cat')
 	{
 		$c_title = trim($_POST['c_title']);
-		
-		if ($c_title)
+		$c_zone = trim($_POST['c_zone']);
+		if ($c_title && $c_zone)
 		{
-			if ($link->addCat($c_title) == false) {
+			if ($link->addCat($c_zone,$c_title) == false) {
 				$err = $link->con->error();
 			} else {
-				header('Location: '.$url);
+				header('Location: '.$url.'&l_zone='.$l_zone);
 				exit;
 			}
+		} else {
+			$err = __('You must provide a valid area and a label');
 		}
 	}
 	# Suppression
@@ -123,7 +136,7 @@ else
 		if ($link->delEntry($_GET['id']) == false) {
 			$err = $link->con->error();
 		} else {
-			header('Location: '.$url.'#link');
+			header('Location: '.$url.'&l_zone='.$l_zone.'#link');
 			exit;
 		}
 	}
@@ -133,7 +146,7 @@ else
 		if ($link->ordEntries($_POST['linkOrd']) === false) {
 			$err = $link->con->error();
 		} else {
-			header('Location: '.$url);
+			header('Location: '.$url.'&l_zone='.$l_zone);
 			exit;
 		}
 	}
@@ -148,7 +161,7 @@ else
 		if ($link->ordEntries($linkOrd) === false) {
 			$err = $link->con->error();
 		} else {
-			header('Location: '.$url);
+			header('Location: '.$url.'&l_zone='.$l_zone);
 			exit;
 		}
 	}
@@ -160,11 +173,11 @@ else
 		if ($link->ordLink($_GET['id'],$dir) == false) {
 			$err = $link->con->error();
 		} else {
-			header('Location: '.$url.'#link');
+			header('Location: '.$url.'&l_zone='.$l_zone.'#link');
 			exit;
 		}
 	}
-	# Monter / descendre une cat�gorie
+	# Monter / descendre une catégorie
 	elseif (($action == 'up_cat' || $action == 'down_cat') && !empty($_GET['id']))
 	{
 		$dir = ($action == 'up_cat') ? '+' : '-';
@@ -172,14 +185,27 @@ else
 		if ($link->ordCat($_GET['id'],$dir) == false) {
 			$err = $link->con->error();
 		} else {
-			header('Location: '.$url.'#link');
+			header('Location: '.$url.'&l_zone='.$l_zone.'#link');
 			exit;
 		}
 	}
 	
 	# Affichage ---
-	echo('<h1>'.__('Links manager').'</h1>');
+	//echo '<h1>'.__('Links manager').'</h1>';
+	echo('<h1 style="padding-left:50px;background: transparent url(tools/link/themes/'.$_px_theme.'/icon.png) no-repeat left center;" >'.__('Links manager').'</h1>');
 	
+	// zone pour filtrer les liens par zone
+	$array_zone = $link->getZones();
+	$array_zone_all = array_merge(array(__('All values') => ""), $array_zone);
+	echo '<form action="'.$url.'" method="post"><p id="link-select">';
+	
+	echo form::hidden('action',$action,false);
+	echo form::hidden('page',$page,false);
+	//echo form::hidden('p',$p,false);
+	echo '<label for="l_zone" style="display:inline;"><strong>'. __('Area name').' : </strong></label>';
+	echo form::comboBox('l_zone', $array_zone_all, $l_zone,'','','','prompt="'.__('Select a value').'"');
+	echo '<input class="submit" type="submit" value="'. __('ok').'" />';
+	echo '</p></form>';
 	if ($err != '') {
 		echo(
 		'<div class="erreur"><p><strong>'.__('Error(s)').' :</strong></p>'.
@@ -187,8 +213,7 @@ else
 		'</div>'
 		);
 	}
-	
-	$rs =& $link->getEntries();
+	$rs =& $link->getEntries($l_zone);
 	
 	echo(
 	'<p>'.__('Drag items to change their positions.').'</p>'.
@@ -198,8 +223,10 @@ else
 	while (!$rs->EOF())
 	{
 		$link_id = $rs->f('link_id');
+		$link_zone = $rs->f('zone');
 		$link_ord = $rs->f('position');
 		
+		// pas de label et pas de lien => c'est une catégorie
 		$is_cat = !$rs->f('label') && !$rs->f('href');
 		
 		$i_label = ($is_cat) ? $rs->f('title') : $rs->f('label');
@@ -237,7 +264,8 @@ else
 			'<p>'.
 			htmlspecialchars($rs->f('href')).
 			' - '.$rs->f('title').
-			' ('.$rs->f('lang').')'.
+			'     (lang='.$rs->f('lang').' , '. 
+			' target='.$rs->f('cible').', style='.$rs->f('style').' )' .
 			'</p>'
 			);
 		}
@@ -285,12 +313,27 @@ else
 	form::textField('l_label', 40, 255, $l_label).'</p>'.
 	
 	'<p class="field"><strong>'.
+	'<label for="l_zone" class="float">'.__('Zone d\'affichage').' : </label></strong>'.
+	/*form::textField('l_zone', 40, 255, $l_zone).'</p>'.*/
+	form::comboBox('l_zone', $array_zone, $l_zone).'</p>'.
+	
+	'<p class="field"><strong>'.
 	'<label for="l_href" class="float">'.__('URL').' : </label></strong>'.
 	form::textField('l_href', 40, 255, $l_href).'</p>'.
+
+	'<p class="field"><strong>'.
+	'<label for="l_cible" class="float">'.__('Cible').' : </label></strong>'.
+	form::textField('l_cible', 40, 255, $l_cible).'   '.
+	__('Vide par défaut. Saisir _blank ou le nom d\'une fenêtre pour ouvrir dans une autre page').
+	'</p>'.
 	
 	'<p class="field">'.
 	'<label for="l_title" class="float">'.__('Description').' ('.__('optional').') : </label>'.
 	form::textField('l_title', 40, 255, $l_title).'</p>'.
+
+	'<p class="field">'.
+	'<label for="l_style" class="float">'.__('Style').' ('.__('optional').') : </label>'.
+	form::textField('l_style',30,30,$l_style) . '</p>'.
 	
 	'<p class="field">'.
 	'<label for="l_lang" class="float">'.__('Language').' ('.__('optional').') : </label>'.
@@ -305,8 +348,13 @@ else
 	echo(
 	'<form action="'.$url.'" method="post">'.
 	'<fieldset><legend><span class="category_style">'.__('New rubric').'</span></legend>'.
+	
 	'<p class="field"><strong>'.
-	'<label for="c_title" class="float">'.__('Title').' : </label></strong>'.
+	'<label for="l_zone" class="float">'.__('Area name').' : </label></strong>'.
+	form::textField('c_zone', 40, 255, $l_zone).'</p>'.
+	
+	'<p class="field"><strong>'.
+	'<label for="c_title" class="float">'.__('Category name').' : </label></strong>'.
 	form::textField('c_title', 40, 255, $c_title).'</p>'.
 	
 	'<p class="button">'.form::hidden('action','add_cat',false).
@@ -318,7 +366,9 @@ else
 	echo(
 	'<h2>'.__('Usage').'</h2>'.
 	'<p>'.__('To replace your static links list by this one, just put the following code in your template:').'</p>'.
-	'<pre>&lt;?php pxLink::linkList(); ?&gt;</pre>'
+	'<pre>&lt;?php pxLink::linkList(); ?&gt;</pre>'.
+	'<p>'.__('or'). '</p><pre>&lt;?php pxLink::linkListByArea("'.__('Area name').'"); ?&gt;</pre>'.
+	'<p>'.__('or'). '</p><pre>&lt;?php pxLink::linkListByCategory("'.__('Category name').'"); ?&gt;</pre>'
 	);
 }
 ?>

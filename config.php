@@ -1,4 +1,5 @@
 <?php
+
 # ***** BEGIN LICENSE BLOCK *****
 # This file is part of Plume CMS, a website management application.
 # Copyright (C) 2001-2005 Loic d'Anterroches and contributors.
@@ -25,8 +26,8 @@ $_PX_config['manager_path'] = dirname(__FILE__).'/manager';
 // configweb_idofthesite.php
 
 include_once $_PX_config['manager_path'].'/inc/lib.utils.php';
-include $_PX_config['manager_path'].'/conf/configweb_default.php';
+include_once $_PX_config['manager_path'].'/conf/configweb_default.php';
 
-include $_PX_config['manager_path'].'/conf/config.php';
+include_once $_PX_config['manager_path'].'/conf/config.php';
 
 ?>

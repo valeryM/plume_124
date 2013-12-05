@@ -25,6 +25,9 @@
 ;Articles
 Άρθρα
 
+;Rss
+Rss links
+
 ;Files or images
 Αρχεία ή εικόνες
 
@@ -949,8 +952,8 @@ byte
 ;Go one folder up.
 Μετακίνηση ένα κατάλογο πάνω
 
-;You need now to add the first page of the article. After adding the first page, you can <a href="%s">validate and put online the article</a>.
-Τώρα πρέπει να προσθέσετε την πρώτη σελίδα του άρθρου. Αφού προσθέσετε την πρώτη σελίδα, μπορείτε να <a href="%s">αξιολογήσετε και να δημοσιεύσετε το άρθρο</a>.
+;You need now to add the first page of the article. After adding the first page, you can validate and put online the article.
+Τώρα πρέπει να προσθέσετε την πρώτη σελίδα του άρθρου. Αφού προσθέσετε την πρώτη σελίδα, μπορείτε να αξιολογήσετε και να δημοσιεύσετε το άρθρο.
 
 ;The comment was successfully deleted.
 Το σχόλιο διαγράφηκε με επιτυχία.

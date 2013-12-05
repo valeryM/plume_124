@@ -76,15 +76,18 @@ class link
 		if (is_array($options)) {
 			extract($options);
 		}
-		if (preg_match(
-			'!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!',
-			$url,$matches)
-		) {
+		
+		if (preg_match('!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!', $url,$matches) ) {
+			$localHost = $_SERVER["HTTP_HOST"];
+			if ($matches[1] == '')  {
+				if (substr($url,0,1) != '/') $url = '/'.$url;
+				$url= 'http://'.$localHost.$url;
+				preg_match(	'!^(([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?!',$url,$matches);
+			}
+
 			$scheme = $matches[2];
 			$authority = $matches[4];
-			if ( is_array($allowed_schemes) &&
-				!in_array($scheme,$allowed_schemes)
-			) {
+			if ( is_array($allowed_schemes) && !in_array($scheme,$allowed_schemes)  ) {
 				return false;
 			}
 			if ($domain_check && function_exists('checkdnsrr')) {
@@ -97,7 +100,7 @@ class link
 		return false;
 	}
 	
-	function addLink($label,$href,$title='',$lang='',$cat='-1')
+	function addLink($zone, $label, $href, $cible, $title='', $lang='', $cat='-1', $style)
 	{
 		#Position maximum
 		$strReq = 'SELECT MAX(position) '.
@@ -120,17 +123,20 @@ class link
 			$position = $rs->f('position');
 		}
 
-		#On met à jour la position des éléments de $position à $max
+		#On met Ã  jour la position des Ã©lÃ©ments de $position Ã  $max
 		$this->__updPosition($position, $max, +1);
 
 		$insReq = 'INSERT INTO '.$this->table.' '.
-				'(website_id, label, href, title, lang, position) VALUES '.
+				'(website_id, zone, label, href, title, lang, cible, position, style) VALUES '.
 				'(\''.$this->con->escapeStr($this->site_id).'\', '.
+				'\''.$this->con->escapeStr($zone).'\', '.
 				'\''.$this->con->escapeStr($label).'\', '.
 				'\''.$this->con->escapeStr($href).'\', '.
 				'\''.$this->con->escapeStr($title).'\', '.
 				'\''.$this->con->escapeStr($lang).'\', '.
-				'\''.(integer) $position.'\')';
+				'\''.$this->con->escapeStr($cible).'\', '.
+				'\''.(integer) $position.'\', '.
+				'\''.$this->con->escapeStr($style).'\' )';
 		
 		if ($this->con->execute($insReq) === false) {
 			return false;
@@ -140,7 +146,7 @@ class link
 		return true;
 	}
 	
-	function updLink($link_id,$label,$href,$title='',$lang='', $rel='',$cat='-1', $oldCat='-1')
+	function updLink($link_id, $zone, $label,$href,$cible, $title='',$lang='', $rel='',$cat='-1', $oldCat='-1', $style='')
 	{
 		$updReq = '';
 		if ($cat!=$oldCat) {
@@ -174,27 +180,33 @@ class link
 				$position = $rs->f('position');
 			}
 
-			#On met à jour la position des éléments de $position à $max
+			#On met Ã  jour la position des Ã©lÃ©ments de $position Ã  $max
 			if ($currentPosition < $position) {
 				$this->__updPosition($currentPosition+1, $position, -1);
 			} else {
 				$this->__updPosition($position, $currentPosition-1, +1);
 			}
 			$updReq = 'UPDATE '.$this->table.' SET '.
+					'zone = \''.$this->con->escapeStr($zone).'\','.
 					'label = \''.$this->con->escapeStr($label).'\','.
 					'href = \''.$this->con->escapeStr($href).'\','.
 					'title = \''.$this->con->escapeStr($title).'\','.
 					'lang = \''. $this->con->escapeStr($lang).'\','.
 					'rel = \''. $this->con->escapeStr($rel).'\','.
-					'position = '.(integer)$position.' '.
+					'position = '.(integer)$position.', '.
+					'cible = \''.$this->con->escapeStr($cible).'\', '.
+					'style = \''.$this->con->escapeStr($style).'\' '.
 					'WHERE link_id = '.$link_id;
 		} else {
 			$updReq = 'UPDATE '.$this->table.' SET '.
+					'zone = \''.$this->con->escapeStr($zone).'\','.
 					'label = \''.$this->con->escapeStr($label).'\','.
 					'href = \''.$this->con->escapeStr($href).'\','.
 					'title = \''.$this->con->escapeStr($title).'\','.
 					'lang = \'' . $this->con->escapeStr($lang).'\','.
-					'rel = \'' . $this->con->escapeStr($rel).'\''.
+					'rel = \'' . $this->con->escapeStr($rel).'\', '.
+					'cible = \''.$this->con->escapeStr($cible).'\', '.
+					'style = \''.$this->con->escapeStr($style).'\' '.
 					'WHERE link_id = '.$link_id;
 		}
 		
@@ -228,7 +240,7 @@ class link
 		$rs = $this->con->select($strReq);
 		$max_ord = $rs->f(0);
 		
-		# Si on veut monter le plus haut, on arrête
+		# Si on veut monter le plus haut, on arrÃªte
 		if ($position == 0 && $ord == '+') {
 			return false;
 		}
@@ -240,7 +252,7 @@ class link
 		
 		$new_ord = ($ord == '+') ? $position-1 : $position+1;
 		
-		# On met à jour les deux entrées
+		# On met Ã  jour les deux entrÃ©es
 		$updReq = 'UPDATE '.$this->table.' SET '.
 				'position = '.$position.' '.
 				'WHERE position = '.$new_ord.' AND website_id=\''.$this->site_id.'\'';
@@ -261,8 +273,8 @@ class link
 		return true;
 	}
 	
-	# Création de catégorie
-	function addCat($title)
+	# CrÃ©ation de catÃ©gorie
+	function addCat($zone, $title)
 	{
 		$strReq = 'SELECT MAX(position) '.
 				'FROM '.$this->table.' '.
@@ -275,8 +287,9 @@ class link
 		$position = $rs->f(0)+1;
 
 		$insReq = 'INSERT INTO '.$this->table.' '.
-				'(website_id, title, position) VALUES '.
+				'(website_id, zone, title, position) VALUES '.
 				'(\''.$this->con->escapeStr($this->site_id).'\', '.
+				'\''.$this->con->escapeStr($zone).'\', '.
 				'\''.$this->con->escapeStr($title).'\', '.
 				'\''.(integer) $position.'\')';
 		
@@ -288,13 +301,13 @@ class link
 		return true;
 	}
 	
-	# Modification de catégories
-	function updCat($id,$title)
+	# Modification de catÃ©gories
+	function updCat($id,$zone,$title)
 	{
-		return $this->updLink($id,'','',$title,'');
+		return $this->updLink($id,$zone,'','',$title,'');
 	}
 	
-	# Ordonner une catégorie
+	# Ordonner une catÃ©gorie
 	function ordCat($link_id,$ord)
 	{
 		$this->__reordEntries();
@@ -316,13 +329,13 @@ class link
 		$rs = $this->con->select($strReq);
 		$max = $rs->f(0);
 		
-		# Position de la catégorie avec laquelle échanger
+		# Position de la catÃ©gorie avec laquelle Ã©changer
 		if ($ord == '+') {
-			# On calcule la position de la catégorie avec laquelle échanger
+			# On calcule la position de la catÃ©gorie avec laquelle Ã©changer
 			$strReq = 'SELECT position '.
 					'FROM '.$this->table.' '.
 					'WHERE href=\'\' AND position<'.$position.' AND website_id=\''.$this->site_id.'\' '.
-					'ORDER BY position DESC';
+					'ORDER BY zone, position DESC';
 			$rs = $this->con->select($strReq);
 			$swapPosition = -1;
 			$swapPositionEnd = $position-1;
@@ -330,22 +343,22 @@ class link
 				$swapPosition = $rs->f('position');
 			}
 
-			# On calcule la position du dernier élément de la catégorie
+			# On calcule la position du dernier Ã©lÃ©ment de la catÃ©gorie
 			$strReq = 'SELECT position '.
 					'FROM '.$this->table.' '.
 					'WHERE href=\'\' AND position>='.($position+1).' AND website_id=\''.$this->site_id.'\' '.
-					'ORDER BY position ASC';
+					'ORDER BY zone, position ASC';
 			$rs = $this->con->select($strReq);
 			$positionEnd = $max;
 			if (!$rs->isEmpty()) {
 				$positionEnd = $rs->f('position')-1;
 			}
 		} else {
-			# On calcule la position de la catégorie avec laquelle échanger
+			# On calcule la position de la catÃ©gorie avec laquelle Ã©changer
 			$strReq = 'SELECT position '.
 					'FROM '.$this->table.' '.
 					'WHERE href=\'\' AND position>'.$position.' AND website_id=\''.$this->site_id.'\' '.
-					'ORDER BY position ASC';
+					'ORDER BY zone, position ASC';
 			$rs = $this->con->select($strReq);
 			$swapPosition = $max+1;
 			$positionEnd = $max;
@@ -354,11 +367,11 @@ class link
 				$positionEnd = $swapPosition-1;
 			}
 
-			# On calcule la position du dernier élément de la catégorie avec laquelle échanger
+			# On calcule la position du dernier Ã©lÃ©ment de la catÃ©gorie avec laquelle Ã©changer
 			$strReq = 'SELECT position '.
 					'FROM '.$this->table.' '.
 					'WHERE href=\'\' AND position>='.($swapPosition+1).' AND website_id=\''.$this->site_id.'\' '.
-					'ORDER BY position ASC';
+					'ORDER BY zone, position ASC';
 			$rs = $this->con->select($strReq);
 			$swapPositionEnd = $max;
 			if (!$rs->isEmpty()) {
@@ -368,13 +381,13 @@ class link
 		$strReq = 'SELECT link_id, position '.
 				'FROM '.$this->table.' '.
 				'WHERE position>='.$position.' AND position<='.$positionEnd.' AND website_id=\''.$this->site_id.'\' '.
-				'ORDER BY position';
+				'ORDER BY zone, position';
 		$rs = $this->con->select($strReq);
 		
 		$strReq = 'SELECT link_id, position '.
 				'FROM '.$this->table.' '.
 				'WHERE position>='.$swapPosition.' AND position<='.$swapPositionEnd.' AND website_id=\''.$this->site_id.'\' '.
-				'ORDER BY position';
+				'ORDER BY zone, position';
 		$rsSwap = $this->con->select($strReq);
 
 		if (!$rs->isEmpty()) {
@@ -419,7 +432,7 @@ class link
 		return true;
 	}
 	
-	# Suppression (lien ou catégorie)
+	# Suppression (lien ou catÃ©gorie)
 	function delEntry($link_id)
 	{
 		$delReq = 'DELETE FROM '.$this->table.' '.
@@ -433,7 +446,7 @@ class link
 		return true;
 	}
 	
-	# Ordonner les entrées
+	# Ordonner les entrÃ©es
 	function ordEntries($ord)
 	{
 		if (!is_array($ord)) {
@@ -455,20 +468,34 @@ class link
 		return true;
 	}
 	
-	# Recuperer les entrées
-	function &getEntries() {
-		$sql = 'SELECT link_id, label, href, title, lang, position ';
+	# Recuperer les entrÃ©es
+	public function getEntries($zone='') {
+		$sql = 'SELECT links.link_id, links.zone, links.label, links.href, links.title, links.lang, links.position, links.cible, links.style ';
+		$sql .= 'FROM '.$GLOBALS['_PX_config']['db']['table_prefix'].'links links ';
+		$sql .= 'LEFT JOIN '.$GLOBALS['_PX_config']['db']['table_prefix'].'links zones ON (zones.zone=links.zone AND zones.website_id=links.website_id) ';
+		$sql .= 'WHERE (zones.href=\'\' OR zones.href IS NULL) ';
+		$sql .= 'AND (zones.cible=\'\' OR zones.cible IS NULL) ';
+		$sql .= 'AND (zones.website_id=\''.$this->site_id.'\' OR zones.website_id IS NULL) ';
+		$sql .= 'AND zones.link_id!=links.link_id ';
+		$sql .= 'AND links.website_id=\''.$this->site_id.'\' ' ;
+		
+		if ($zone!='') $sql .= 'AND links.zone = \''.$zone .'\' ';
+		
+		$sql .= 'ORDER BY zones.position ASC, links.position ASC';
+		/*		
+		$sql = 'SELECT link_id, zone, label, href, title, lang, position, cible, style ';
 		$sql.= 'FROM '.$this->table.' ';
 		$sql.= 'WHERE website_id=\''.$this->site_id.'\' ';
-		$sql.= 'ORDER BY position ';
-	
+		if ($zone!='') $sql .= 'AND zone = \''.$zone .'\' ';
+		$sql.= 'ORDER BY zone, position ';
+		*/
 		$rs = $this->con->select($sql);
 		
 		return $rs;
 	}
 	
 	function &getEntry($link_id) {
-		$strReq = 'SELECT link_id, label, href, title, lang, rel, position '.
+		$strReq = 'SELECT link_id, zone, label, href, title, lang, rel, position, cible, style '.
 			'FROM '.$this->table.' '.
 			'WHERE link_id = '.$link_id;
 	
@@ -477,14 +504,14 @@ class link
 		return $rs;
 	}
 	
-	# Incrémente/décrémente la position des éléments entre $min et $max
+	# IncrÃ©mente/dÃ©crÃ©mente la position des Ã©lÃ©ments entre $min et $max
 	function __updPosition($min, $max, $delta)
 	{
 		if ($min<=$max) {
 			$strReq = 'SELECT link_id, position '.
 					'FROM '.$this->table.' '.
 					'WHERE position>='.$min.' AND position<='.$max.' AND website_id=\''.$this->site_id.'\' '.
-					'ORDER BY position ';
+					'ORDER BY zone, position ';
 			$rs = $this->con->select($strReq);
 		
 			while (!$rs->EOF()) {
@@ -502,14 +529,14 @@ class link
 		return true;
 	}
 
-	# Réordonner les entrées
+	# RÃ©ordonner les entrÃ©es
 	function __reordEntries()
 	{
 		$i = 0;
 		$strReq = 'SELECT link_id, position '.
 				'FROM '.$this->table.' '.
 				'WHERE website_id=\''.$this->site_id.'\' '.
-				'ORDER BY position ';
+				'ORDER BY zone, position ';
 		$rs = $this->con->select($strReq);
 		
 		while (!$rs->EOF())
@@ -531,7 +558,7 @@ class link
 	}
 	
 	# Ajout de header
-	function insertHeader() {
+	public static function insertHeader() {
 		global $_px_theme;
 		
 		$PLUGIN_HEAD =
@@ -553,6 +580,24 @@ class link
 		'</script>';
 		
 		echo($PLUGIN_HEAD);
+	}
+
+	/**
+	 * Retourne la liste des zones existantes
+	 * @return tableau des zones (recordset)
+	 */
+	function getZones()  {
+		$strReq = 'SELECT DISTINCT zone FROM '.$this->table.' ORDER BY position';
+		$rs = $this->con->select($strReq);
+		$arry_grp=array();
+		
+		while (!$rs->EOF()) {
+            $name  = $rs->f('zone');
+            $arry_grp[$name] = $rs->f('zone');
+            $rs->moveNext();
+        }
+        return $arry_grp;
+        
 	}
 }
 ?>

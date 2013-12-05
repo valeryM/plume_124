@@ -25,6 +25,9 @@ Ok
 ;Articles
 Статьи
 
+;Rss
+Rss links
+
 ;Files or images
 Файлы или изображения
 
@@ -949,8 +952,8 @@ Id используется в шаблоне:
 ;Go one folder up.
 Вверх
 
-;You need now to add the first page of the article. After adding the first page, you can <a href="%s">validate and put online the article</a>.
-Сейчас вы должны добавить первую страницу статьи. После её добавление вы сможете <a href="%s">утверждать и помещать статьи в онлайн.</a>.
+;You need now to add the first page of the article. After adding the first page, you can validate and put online the article.
+Сейчас вы должны добавить первую страницу статьи. После её добавление вы сможете утверждать и помещать статьи в онлайн.
 
 ;The comment was successfully deleted.
 Комментарий был успешно удалён.

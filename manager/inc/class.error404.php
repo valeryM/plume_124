@@ -31,8 +31,9 @@ class Error404
      * @param string Server query string
      * @return int Success code
      */
-    function action($query)
+    public static function action($query)
     {
+    	
     	$l10n = new l10n(config::f('lang'));
         $l10n->loadTemplate(config::f('lang'), config::f('theme_id'));
         
@@ -119,9 +120,10 @@ class Error404
 
         header('Status: 404 Not Found');
         header(FrontEnd::getHeader('404.php'));
-        // Load the template
+        // Load the template        
         include config::f('manager_path').'/templates/'
             .config::f('theme_id').'/404.php';
+            
         return 200;
     }
 
@@ -131,7 +133,7 @@ class Error404
      * @param string Query string
      * @return string Clean query string
      */
-    function parseQueryString($query)
+    public static function parseQueryString($query)
     {
         $clean = '';
         $query = Search::clean_string($query);

@@ -217,7 +217,7 @@ class thumbnail
      * Resample the image 
      * http://www.php.net/manual/en/function.imagecopyresized.php
      */
-    function _resampleBicubic(&$dst, &$src, $dstx, $dsty, $srcx, $srcy, $w, $h, $zoomX, $zoomY = '')
+    private function _resampleBicubic(&$dst, &$src, $dstx, $dsty, $srcx, $srcy, $w, $h, $zoomX, $zoomY = '')
     {
 	if (!$zoomY) {
 	    $zoomY = $zoomX;

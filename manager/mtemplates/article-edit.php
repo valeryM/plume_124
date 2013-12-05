@@ -26,36 +26,96 @@ if (basename($_SERVER['SCRIPT_NAME']) == 'article-edit.php') exit;
 /* ===================================================== *
  *  Preview of the content if some content is available  *
  * ===================================================== */
-if (strlen($ar->getUnformattedContent('description'))) {
-    echo '<div class="preview">';
-    
+if (strlen($ar->getUnformattedContent('description')) || $ar->getTextContent('title')) {
+    echo '<div id="preview" class="preview" style="display:none">';
+    echo '<div>';
     echo '<h2>'.$ar->getTextContent('title').'</h2>';
-    echo $ar->getFormattedContent('description','html');
+    echo $ar->getFormattedContent('description','Html');
+    //if (!$is_editable) {
 
-    echo "<hr class='invisible' id=\"xxx-prevent\" /></div>\n\n";
-
-    if (!$is_editable) {
+    	$nbrePage = $ar->pages->nbRow();
+	//  navigation multi pages
+		if ($nbrePage > 1) {
+			echo '<div id="tabs">';
+			echo '<ul>';
+			$i = 1;
+			while (!$ar->pages->EOF())  {
+				echo '<li><a href="#tabs-'.$i.'" style="font-size:10px">'
+						.trim($ar->pages->f('page_title')).'</a></li>';
+				$ar->pages->moveNext();
+				$i++;
+			}
+			echo '</ul>';
+			$ar->pages->moveStart();
+			
+		}			
+	
+	    //echo "<hr class='invisible' id=\"xxx-prevent\" />\n\n";
+		$cpt = 1;
         while (!$ar->pages->EOF()) {
-            echo '<div class="preview">';
-
-            echo '<h3>'.$ar->getTextContent('page_title', 'pages').'</h3>';
-            echo $ar->getFormattedContent('page_content', 'html', 'pages');
-
-            echo "<hr class='invisible' id=\"zzz\"/></div>\n\n";
+			if ($nbrePage > 1) {
+				echo '<div id="tabs-'.$cpt.'">';
+			}
+           	echo '<h3>'.$ar->getTextContent('page_title', 'pages').'</h3>';
+            echo '<span style="display:block">'.$ar->getFormattedContent('page_content', 'html', 'pages').'</span>';
             $ar->pages->moveNext();
+            
+			if ($nbrePage > 1) {
+				echo '</div>';
+			}
+            $cpt++;
         }
 
-    }
-}
+		if ($nbrePage > 1) {
+			echo '</div>';
+			$PageNum = 1;
+			if (!empty($_REQUEST['PageNum'])) $PageNum = $_REQUEST['PageNum'];
+			if (!empty($PageNum) ) {
+				echo '<script type="text/javascript">';
+				echo '	$(function() {
+							var $tabs = $("#tabs").tabs();
+							$tabs.tabs(\'select\', '. ($PageNum-1) . '); // switch to tab				
+						});';
+				echo '</script>';
+			}
+		}    
+    //}
+    echo '</div>';
+	echo '</div>';	
 
+}
+/*
+ * Fin preview
+ */
+/*
+$do="";
+$old_art=0;
+if (!empty($_POST['do'])) $do=$_POST['do'];
+if (!empty($_REQUEST['do'])) $do=$_REQUEST['do'];
+if (!empty($_POST['old_art'])) $old_art=$_POST['old_art'];
+if (!empty($_REQUEST['old_art'])) $old_art=$_REQUEST['old_art'];
+if ($do=="copy" && $old_art==0)  {
+	//if (!empty($_POST['resource_id'])) $old_art=$_POST['resource_id'];
+	if (!empty($_REQUEST['resource_id'])) $old_art=$_REQUEST['resource_id'];
+}
+*/
 /* =========================================== *
  *  If is editable form to modify the content  *
  * =========================================== */
-if ($is_editable) { 
-    echo '<form action="articles.php" method="post" id="formPost"'
-        .'onsubmit="return isReady(\'a_title\',\''
-        .__('You need to give a title.').'\')">'."\n\n";
+$valueLocation = PathSelector::getLocation();
+if ($is_editable) {
 
+	Hook::run('onPrintHeaderManagerPage2', array('m' => &$m));
+	
+    echo '<form action="articles.php" method="post" id="formPost" ' .
+    	'onsubmit="return (isReady(\'a_title\',\''.__('You need to give a title.').'\') &&' .
+    			' isDateGreater(\'a_dt\',\'a_dt_e\',\''.addslashes(__('The off-line date is wrong.')).'\'))">';
+        
+	if  (!empty($do))   {
+		$do="copy";
+		echo form::hidden("do","copy");
+		echo form::hidden("old_art",$old_art);
+	}
     if ($ar->cats->nbRow() >= 1) {
         /* ==================================================== *
          *  The article is already in a category, propose more  * 
@@ -63,22 +123,24 @@ if ($is_editable) {
         echo '<fieldset><legend><span class="category_style">'. __('Categories')."</span></legend>\n\n";
         echo "<ol>\n";
         while (!$ar->cats->EOF()) {
-            echo '<li>'.$ar->cats->f('category_name');
+            //echo '<li>'.$ar->cats->f('category_name'). ' ('.$ar->cats->f('category_path').')';
             if ($ar->cats->f('categoryasso_type') != PX_RESOURCE_CATEGORY_MAIN) {
+            	echo '<li ><span class="categoryList">'.$ar->cats->f('category_name'). '</span> ('.$ar->cats->f('category_path').')';
                 echo ' - <a href=\'articles.php?delcat=1&amp;resource_id='
-                    .$ar->f('resource_id').'&amp;a_category_id='
+                    .$ar->f('resource_id').'&amp;cat_id='
                     .$ar->cats->f('category_id').'\' title=\''
                     . __('Remove from this category').'\'>';
                 echo '<img src="themes/'.$_px_theme
                     .'/images/delete.png" alt="Delete icon" /></a> ';
                 echo ' <a href=\'articles.php?addcategory=main&amp;resource_id='
-                    .$ar->f('resource_id').'&amp;a_category_id='
+                    .$ar->f('resource_id').'&amp;cat_id='
                     .$ar->cats->f('category_id').'\' title=\''
                     .__('Set as main category').'\'>';
                 echo '<img src="themes/'.$_px_theme
                     .'/images/ico_set_as_home.png" alt="Home icon" /></a> ';
             } else {
-                echo ' - <img src="themes/'.$_px_theme
+            	echo '<li ><span class="categoryMain">'.$ar->cats->f('category_name'). '</span> ('.$ar->cats->f('category_path').') ';
+            	echo ' - <img src="themes/'.$_px_theme
                     .'/images/ico_home.png" alt="'.__('Main category')
                     .'" />';
             }
@@ -86,27 +148,48 @@ if ($is_editable) {
             $ar->cats->moveNext();
         }
         echo "</ol>\n\n";
-        echo '<p><span class="nowrap"><label for="a_category_id" '
+        echo '<p><span class="nowrap"><label for="cat_id" '
             .'style="display:inline">'.__('Add in another category').' '
             .$m->HelpLink('article', 'h-category').'</label><br />'."\n";
-        echo form::combobox('a_category_id',$arry_cat, '', 
+        /*    
+        echo form::combobox('cat_id',$arry_cat, '', 
                             $m->user->getPref('article_category_id'), 1)."\n";
+        */
+            
+//echo '<input size="3" type="hidden" name="cat_id" value="1">';
+//echo '<input size="3" name="location" type="hidden" style="height:20px" value="'.$location.'">';
+   
+		echo PathSelector::getFields($valueLocation, $m->user->getPref('article_category_id'));                            
         echo '<input name="addcategory" tabindex="2" type="submit" '
             .'class="submit" value="'.__('Add').'" />'."\n";
         echo '</span></p></fieldset>'."\n".'<p class="selections">';
     } else {  
         /* ================================================= *
-         *  A new news, propose a list of categories         * 
+         *  A new article, propose a list of categories         * 
          * ================================================= */
         
         echo '<p class="selections">'."\n";
-        echo '<span class="nowrap"><label for="a_category_id" '
+        echo '<span class="nowrap"><label for="cat_id" '
             .'style="display:inline">'.__('Category').' '
             .$m->HelpLink('article', 'h-category').'</label>'."\n";
-        echo form::combobox('a_category_id', $arry_cat, 
+/*            
+        echo form::combobox('cat_id', $arry_cat, 
                             $ar->f('category_id'), 
                             $m->user->getPref('article_category_id'),
-                            2).'</span>'."\n";
+                            2)."\n";
+*/
+
+if ($valueLocation !=='') {
+	$arrayLocations = explode('.',$valueLocation);
+	if (count($arrayLocations)>=1) {
+		$cat_id = $arrayLocations[count($arrayLocations)-1];
+	} else $cat_id = $valueLocation;
+}
+
+//echo '<input size="3" name="location" type="hidden" style="height:20px" value="'.$location.'">';
+//echo '<input size="3" type="hidden" name="cat_id" value="'.$cat_id.'">';
+echo PathSelector::getFields($valueLocation,$cat_id);
+echo '</span>';                           
     } 
     /* ================================================= *
      *  Rest of the edition form                         * 
@@ -144,10 +227,15 @@ if ($is_editable) {
         echo __('Comments').' ';  
         echo $m->HelpLink('article', 'h-comments'); 
         echo '</label> ';
+        
+        $pref = $m->user->getPref('article_comment_support');
         echo form::combobox('a_comment_support', 
                             $m->getArrayCommentSupport(),
                             $ar->f('comment_support'), 
-                            $m->user->getPref('article_comment_support'), 4);
+                            ($pref ==2 || $pref=='') ? config::f('comment_default_value')  : $pref,
+        					 4);
+
+                            
         echo "</span>\n\n";
     } else {
         echo form::hidden('a_comment_support', config::f('comment_support'));
@@ -167,8 +255,27 @@ if ($is_editable) {
     } else {
         echo form::hidden('a_subtype', array_shift($arry_subtypes));
     }
-    echo "</p>\n";
-
+    echo '<input name="publish" type="submit" class="submit" tabindex="913" ';
+    
+    echo 'value="'.__('Save [s]').'" accesskey="'.__('s').'" />';
+	// Ajout bouton pour le fil rouge
+	/*
+	echo '<span  style="position:absolute;left:70%">';
+	echo '	<span class="filRouge" >&nbsp;</span>';
+	$checked = $ar->f('filRouge')== 1 ? true : false;
+	echo form::checkbox('filRouge',$ar->f('filRouge'),$checked,'','onclick="if (this.checked) this.value=1;"' );
+	echo '<label for="filRouge" style="display:inline" >';
+	echo __('FilRouge');
+	echo '</label>';
+	echo '</span>';
+	*/
+	if (strlen($ar->getUnformattedContent('description')) || $ar->getTextContent('title')) {
+	    echo '<span class="nowrap" style="position:absolute;left:85%">';
+	    echo '	<button class ="previewButton" type="button" onclick="affichePopupApercu();">Aperçu</button>';
+	    echo '</span>';
+	    echo "</p>\n";
+	}
+    
     // Title
     echo '<p><label for="a_title"><strong>';
     echo __('Title'); 
@@ -181,7 +288,7 @@ if ($is_editable) {
     echo "</p>\n";
 
     echo "<p>\n";
-
+/*
     // Insert an image or a file
     echo '<span id="insert-img" class="right-block"><img src="themes/'.$_px_theme
         .'/images/ico_image.png" alt="" /> ';
@@ -189,7 +296,7 @@ if ($is_editable) {
     echo 'onclick="popup(this.href+\'?mode=popup\'); return false;">';
     echo __('Insert an image or a file'); 
     echo '</a></strong></span>'."\n";
-
+*/
     // Description
     echo '<label for="a_description"><strong>'. __('Description').'</strong> ';
     echo $m->HelpLink('article', 'h-description').' ';
@@ -197,9 +304,10 @@ if ($is_editable) {
     echo form::textArea('a_description', 60,
                         $m->user->getPref('article_textarea_description'),
                         $ar->getUnformattedContent('description'), 7,
-                        'style="width:100%"');
-
+                        'class="ckeditorBar" style="width:100%"');
+	
     // Size controls
+    /*
     echo '<span id="size-control" class="size-control">';
     echo '<input type="image" title="'.__('shrink textarea');
     echo '" name="decrease" value="-" src="themes/'.$_px_theme; 
@@ -207,8 +315,9 @@ if ($is_editable) {
     echo '<input type="image" title="'.__('grow textarea');
     echo '" name="increase" value="+" src="themes/'.$_px_theme; 
     echo '/images/ico_grow.png" accesskey="+" class="size-control" />';
-    echo "</span>\n</p>\n\n";
-
+    echo '</span>\n';
+    */
+    	echo '</p>';
     // Keywords
     echo '<p><label for="a_subject">'.__('Keywords').' ';
     echo $m->HelpLink('article', 'h-keywords').' </label>';
@@ -227,15 +336,24 @@ if ($is_editable) {
     if ($ar->f('resource_id') > 0) {
         echo '<p>'. __('Publication date').' ';
         echo $m->HelpLink('article', 'h-publication-date');
+		$dt_date = $ar->getArrayDate('publicationdate');
+        echo ' '.form::datetime('a_dt', $dt_date, 9,'',false);
+        echo '<script type="text/javascript">';
+        echo '$(function() {';
+        echo '     $("#a_dt").datepicker({setDate:"'.$dt_date[4].'/'.$dt_date[3].'/'.$dt_date[5].'",dateFormat:"yymmdd"});';
+        echo '	   $("#a_dt").change(function() { if ($("#a_dt").val()>$("#a_dt_e").val()) {$("#a_dt_e").val($("#a_dt").val())} });';
+        echo '});';
+		echo '</script>';
+        /*        
         echo ' '.form::datetime('a_dt', 
                                 $ar->getArrayDate('publicationdate'), 9);
+        */
         echo "<br />\n";
-        $noenddate_style = ($ar->isDateEOT('enddate')) ? 
-            'style="display: none"' : '';
+        $noenddate_style = ($ar->isDateEOT('enddate')) ? 'style="display: none"' : 'style="display:inline"';
 
         echo '<span class="nowrap">';
         echo form::checkbox('a_noenddate', 1, $ar->isDateEOT('enddate'), 10, 
-                            "onclick=\"openCloseSpan('noenddate',0)\"").' ';
+        		'onclick="modifDateRefererTo(\'a_noenddate\',\'a_dt_e\');openCloseSpan(\'noenddate\',0)"').' ';
         echo '<label for="a_noenddate" style="display:inline">';
         echo __('Do not use an expiration date.');
         echo '</label></span>';
@@ -243,7 +361,17 @@ if ($is_editable) {
         echo '<br />';
         echo __('Expiration date').' ';
         echo $m->HelpLink('article', 'h-expiration-date').' ';
+        /*
         echo form::datetime('a_dt_e', $ar->getArrayDate('enddate'), 11);
+        */
+		$dt_date = $ar->getArrayDate('enddate');
+        echo ' '.form::datetime('a_dt_e', $dt_date, 9,'',false);
+        echo '<script type="text/javascript">';
+        echo '$(function() {';
+        echo '     $("#a_dt_e").datepicker({setDate:"'.$dt_date[4].'/'.$dt_date[3].'/'.$dt_date[5].'",dateFormat:"yymmdd"});';		echo '});';
+        echo '	   $("#a_dt_e").change(function() { if ($("#a_dt").val()>$("#a_dt_e").val()) {$("#a_dt_e").val($("#a_dt").val())} });';
+        echo '</script>';        
+        
         echo "</span></p>\n\n";
     }
 
@@ -252,6 +380,7 @@ if ($is_editable) {
         echo '<fieldset><legend><span class="art_style">'. __('Article pages').'</span></legend>'."\n\n";
         if ($ar->pages->nbRow() >= 1) {
             echo "<ol>\n";
+            $ar->pages->moveStart();
             while (!$ar->pages->EOF()) {
                 echo '<li><a tabindex="4'.$ar->pages->f('page_number').'" ';
                 echo 'href=\'articles.php?op=page&amp;resource_id='
@@ -275,9 +404,12 @@ if ($is_editable) {
     }
 
     // Submit buttons
-    echo '<p class="button"><input name="preview" type="submit" class="submit" ';
+    echo '<p class="button">';
+    /*
+    echo '<input name="preview" type="submit" class="submit" ';
     echo 'tabindex="912" value="'.__('Visualize [v]').'" ';
     echo 'accesskey="'.__('v').'" />&nbsp; ';
+    */
     echo '<input name="publish" type="submit" class="submit" tabindex="913" ';
     echo 'value="'.__('Save [s]').'" accesskey="'.__('s').'" />';
 
@@ -299,32 +431,33 @@ if ($is_editable) {
     echo "</form>\n\n";
     ?>
 <h2><?php  echo __('Online help') ?></h2>
-<h3><a onclick="openClose('wikihelp',0); return false" href="#"><img alt="<?php  echo __('show/hide'); ?>" id="img_wikihelp" src="themes/<?php echo $_px_theme; ?>/images/plus.png" /></a>&nbsp;
+<h3><a onclick="openCloseSpan('wikihelp',0); return false" href="#"><img alt="<?php  echo __('show/hide'); ?>" id="img_wikihelp" src="themes/<?php echo $_px_theme; ?>/images/plus.png" /></a>&nbsp;
 <?php  echo __('Wiki syntax'); ?></h3>
 <div id="wikihelp" style="display: none;">
 <?php echo $m->getHelp('wiki-inline'); ?>
 </div>
 <script type="text/javascript"><!--
-openClose('wikihelp',-1);
+openCloseSpan('wikihelp',-1);
 //--></script>
 
-<h3><a onclick="openClose('htmlhelp',0); return false" href="#"><img alt="<?php  echo __('show/hide'); ?>" id="img_htmlhelp" src="themes/<?php echo $_px_theme; ?>/images/plus.png" /></a>&nbsp;
+<h3><a onclick="openCloseSpan('htmlhelp',0); return false" href="#"><img alt="<?php  echo __('show/hide'); ?>" id="img_htmlhelp" src="themes/<?php echo $_px_theme; ?>/images/plus.png" /></a>&nbsp;
 <?php  echo __('XHTML coding'); ?></h3>
 <div id="htmlhelp" style="display: none;">
 <?php echo $m->getHelp('html-inline'); ?>
 </div>
 <script type="text/javascript"><!--
-openClose('htmlhelp',-1);
+openCloseSpan('htmlhelp',-1);
 //-->
 </script>
 
  <?php
+ if ($_PX_website_config['comment_support'] < 3)  {
     $px_resource_id = $ar->f('resource_id');
     if ($px_resource_id > 0) {
         $ct = $ar->comments;
         include dirname(__FILE__).'/comments-rlist.php';
     }
-
+ }
 
 }
 ?>

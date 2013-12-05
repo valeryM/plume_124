@@ -68,7 +68,7 @@ if ($ct->isEmpty()) {
             break;
         }
         echo '<div class="resourcebox '.$ct_class.'" id="comment'.$ct->f('comment_id').'">'
-            .'<a href="#" onclick="openClose(\'c'.$ct->f('comment_id')
+            .'<a href="#" onclick="openCloseSpan(\'c'.$ct->f('comment_id')
             .'\',0); return false;" title="'.__('Show/hide edition form').'">'
             .'<img src="themes/'.$_px_theme.'/images/plus.png" id="img_c'
             .$ct->f('comment_id').'" class="show_button" alt="'.__('Show/hide edition form')

@@ -21,7 +21,12 @@
 # ***** END LICENSE BLOCK ***** */
 
 if (basename($_SERVER['SCRIPT_NAME']) == 'menu.php') exit;
-
+//echo 'logo :'.$m->website->f('website_img');
+// get the link for website image
+if ($m->website->f('website_img') != '' && $m->website->f('website_img') != null) {
+	$img_url = 'themes/'.$_px_theme.'/images/'.$m->website->f('website_img');
+	$px_menu->addItem('<img src="'.$img_url.'" alt="Site" style="height:32px"/>', '','','',true,'');
+}
 // Main menu
 $px_menu->addItem(__('Content'), 'index.php', 
 		  'themes/'.$_px_theme.'/images/ico_content.png', 
@@ -30,7 +35,7 @@ $px_menu->addItem(__('Content'), 'index.php',
 $px_menu->addItem(__('Comments'), 'comments.php', 
 		  'themes/'.$_px_theme.'/images/ico_comments.png', 
 		  (basename($_SERVER['PHP_SELF']) == 'comments.php'), 
-		  true, __('m'));
+		  ($_PX_website_config['comment_support'] != 3), __('m'));
 $px_menu->addItem(__('Categories'), 'categories.php', 
 		  'themes/'.$_px_theme.'/images/ico_cat.png', 
 		  (preg_match('/^categories/',basename($_SERVER['PHP_SELF']))),

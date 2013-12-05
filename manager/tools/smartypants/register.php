@@ -20,8 +20,8 @@ Hook::register('onParseContent', 'PlumeSmartyPants', 'parseContent');
 
 class PlumeSmartyPants
 {
-    function parseContent($hook, &$p) {
-        $p['text'] = SmartyPants($p['text']);
+    public static function parseContent($hook, &$p) {
+        $p[0]['text'] = SmartyPants($p[0]['text']);
     }
 }
 
@@ -421,7 +421,7 @@ class SmartyPants_Parser {
 	}
 
 
-	function educateDashes($_) {
+	public static function educateDashes($_) {
 	#
 	#   Parameter:  String.
 	#
@@ -434,7 +434,7 @@ class SmartyPants_Parser {
 	}
 
 
-	function educateDashesOldSchool($_) {
+	public static function educateDashesOldSchool($_) {
 	#
 	#   Parameter:  String.
 	#

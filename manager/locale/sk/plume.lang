@@ -25,6 +25,9 @@ Novinky
 ;Articles
 Články
 
+;Rss
+Rss links
+
 ;Files or images
 Súbory alebo obrázky
 
@@ -949,8 +952,8 @@ Nadradený priečinok
 ;Go one folder up.
 O jednu úroveň vyššie.
 
-;You need now to add the first page of the article. After adding the first page, you can <a href="%s">validate and put online the article</a>.
-Teraz je potrebné pridať prvú stranu článku. Po pridaní prvej strany môžete <a href="%s">článok potvrdiť a zverejniť</a>.
+;You need now to add the first page of the article. After adding the first page, you can validate and put online the article.
+Teraz je potrebné pridať prvú stranu článku. Po pridaní prvej strany môžete článok potvrdiť a zverejniť.
 
 ;The comment was successfully deleted.
 Komentár bol úspešne odstránený.

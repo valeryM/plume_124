@@ -156,7 +156,8 @@ class Category extends recordset
         $this->setField('category_cachetime', 3600);
         $this->setField('category_description', 
                         '='.$user->getPref('content_format')."\n");
-
+        $this->setField('category_isGhost',0);
+        $this->setField('category_template','category_category.php');
         $this->isModified = true;
         return true;
     }
@@ -316,7 +317,7 @@ class Category extends recordset
      * @param string Server query string
      * @return int Success code
      */
-    function action($query)
+    public static function action($query)
     {
         Hook::register('onInitTemplate', 'Category', 'hookOnInitTemplate');
         $l10n = new l10n(config::f('lang'));
@@ -327,10 +328,14 @@ class Category extends recordset
         $GLOBALS['_PX_render']['website'] = '';
         $website =& $GLOBALS['_PX_render']['website']; 
         $GLOBALS['_PX_render']['cat'] = '';
+        $GLOBALS['_PX_render']['mcat'] = '';
+        $GLOBALS['_PX_render']['mchildcat'] = '';
         $cat =& $GLOBALS['_PX_render']['cat']; 
         $GLOBALS['_PX_render']['res'] = '';
         $res =& $GLOBALS['_PX_render']['res']; 
 
+        config::setVar('query_string', $query);
+        
         // Parse query string to find the matching category
         list($path, $page) = Category::parseQueryString($query);
         config::setVar('category_page', $page);
@@ -344,11 +349,13 @@ class Category extends recordset
             if (!$cat->isEmpty()) {
                 $cat->load();
             } else {
+            	config::setVar('query_string_origin', Search::parseQueryString($query));
                 return 404;
             }
         } else {
             $GLOBALS['_PX_render']['error']->setError('MySQL: '
                                                       .$con->error(), 500);
+            config::setVar('query_string_origin', Search::parseQueryString($query));
             return 404;
         }
 
@@ -372,12 +379,24 @@ class Category extends recordset
      * @param array Default parameters (not used)
      * @return bool Success
      */
-    function hookOnInitTemplate($hook, $param)
+    public static function hookOnInitTemplate($hook, $param)
     {
         if (config::f('action') == 'Category') {
-            $GLOBALS['_PX_render']['website'] = FrontEnd::getWebsite();
+            $GLOBALS['_PX_render']['website'] = FrontEnd::getWebsite();            
+            $arrayPath = explode('/',$GLOBALS['_PX_render']['cat']->f('category_path'));
+            // récupère la 1ère catégorie
+            if (count($arrayPath)>0) 
+            	$GLOBALS['_PX_render']['mcat'] = FrontEnd::getCategory('/'.$arrayPath[1].'/');
+            // récupère la 2nde catégorie
+            //echo print_r($arrayPath,true);
+            if (count($arrayPath)>3) 
+            	$GLOBALS['_PX_render']['mchildcat'] = FrontEnd::getCategory('/'.$arrayPath[1].'/'.$arrayPath[2].'/');
+            else 
+            	$GLOBALS['_PX_render']['mchildcat'] = FrontEnd::getCategories($GLOBALS['_PX_render']['mcat']->f('category_id'),'ORDER BY category_position');
+            
             $GLOBALS['_PX_render']['pcat'] = FrontEnd::getCategory($GLOBALS['_PX_render']['cat']->f('category_parentid'));
-            $category = $GLOBALS['_PX_render']['cat']->f('category_id');
+            $GLOBALS['_PX_render']['childcat'] = FrontEnd::getCategories($GLOBALS['_PX_render']['cat']->f('category_id'));
+            
             $limit = config::fint('res_per_page');
             $type = ''; 
             if (config::f('order_res_manual')) {
@@ -385,11 +404,23 @@ class Category extends recordset
             } else {
                 $order = 'ORDER BY %sresources.publicationdate DESC';
             }
-            $GLOBALS['_PX_render']['res'] = FrontEnd::getResources($category,
+            // if init to get resources online in the categorie and sub cat 
+            if (config::f('resources_online')==true) {
+            	$category = $GLOBALS['_PX_render']['cat']->f('category_path').'%';
+            	$GLOBALS['_PX_render']['res'] = FrontEnd::getOnlineResourcesInCat($category,
+            											'', 
+            											$limit, 
+            											$type,
+            											config::f('category_page'),
+            											'ORDER BY %sresources.path');
+            } else {
+            	$category = $GLOBALS['_PX_render']['cat']->f('category_id');
+            	$GLOBALS['_PX_render']['res'] = FrontEnd::getResources($category,
                                                                    $limit, 
                                                                    $type, 
                                                                    config::f('category_page'),
                                                                    $order);
+            }
         }
         return true;
     }
@@ -400,7 +431,7 @@ class Category extends recordset
      * @param string Query string
      * @return array (Category path, page number)
      */
-    function parseQueryString($query)
+    public static function parseQueryString($query)
     {
         $category = '';
         $page = '';
@@ -411,6 +442,9 @@ class Category extends recordset
         } elseif (preg_match('#^(.*/)$#i', $query, $match)) {
             $category = $match[1];
             $page     = 1;
+        } elseif (preg_match('#^(.*/)*(&Annee=)[0-9]{4}(&Mois=)[0-9]*$#i', $query, $match)) {
+        	$category = $match[1];
+        	$page = 1;
         } else {
             $category = '/';
             $page     = 1;
@@ -450,7 +484,9 @@ class Category extends recordset
                 category_keywords = \''.$this->con->esc($this->f('category_keywords')).'\',
                 category_path = \''.$this->con->esc($this->f('category_path')).'\',
                 category_template = \''.$this->con->esc($this->f('category_template')).'\',
-                category_cachetime= \''.$this->con->esc($this->f('category_cachetime')).'\'
+                category_cachetime= \''.$this->con->esc($this->f('category_cachetime')).'\',
+                category_isGhost = '.$this->f('category_isGhost').', 
+                has_xmedia_folder = '.$this->f('has_xmedia_folder').'
                 WHERE category_id = \''.$this->con->esc($this->f('category_id')).'\'';
         } else {
             $req = 'INSERT INTO '.$this->con->pfx.'categories SET
@@ -466,6 +502,8 @@ class Category extends recordset
                 category_creationdate = \''.$this->con->esc($this->f('category_creationdate')).'\',  
                 category_enddate = \''.$this->con->esc($this->f('category_enddate')).'\',
                 category_type = \'default\',
+                category_isGhost = '.$this->f('category_isGhost').', 
+                has_xmedia_folder = '.$this->f('has_xmedia_folder').',
                 image_id = \'0\',
                 icon_id = \'0\',
                 forum_id = \'0\'';
@@ -517,6 +555,13 @@ class Category extends recordset
             $this->setError('MySQL: '.$this->con->error(), 500);
             return false;
         } 
+        // remove from usercats
+        $delReq = 'DELETE FROM '.$this->con->pfx.'usercats 
+        	WHERE category_id='.$this->con->esc($this->f('category_id'));
+        if (!$this->con->execute($delReq)) {
+        	$this->setError('MySQL: '.$this->con->error(), 500);
+        	return false;
+        }
         return true;
     }
 
